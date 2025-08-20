@@ -1,1006 +1,231 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>GrowIndia — Admin</title>
-  <link rel="stylesheet" href="styles.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrowIndia Admin</title>
   <style>
-    :root{
-      --bg:#f7f8fb; --panel:#fff; --ink:#0f172a; --muted:#64748b; --line:#e5e7eb;
-      --btn:#2563eb; --btn-ink:#fff; --bad:#ef4444; --warn:#f59e0b; --ok:#10b981;
-      --badge:#eef2ff; --badge-ink:#1e40af;
-    }
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,"Apple Color Emoji","Segoe UI Emoji"}
-    .btn{background:var(--btn);color:var(--btn-ink);border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
-    .btn.bad{background:var(--bad);color:#fff}
-    .btn.warn{background:var(--warn);color:#111}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--badge);color:var(--badge-ink);font-size:12px}
-    input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
-    textarea{resize:vertical}
+    :root{--bg:#0f172a;--card:#0b1024;--muted:#9aa3b2;--text:#e5e7eb;--accent:#3b82f6;--good:#10b981;--bad:#ef4444}
+    html,body{margin:0;padding:0;background:#0b1220;color:#e6e8ea;font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:16px 20px;background:#0f172a;position:sticky;top:0;z-index:10;border-bottom:1px solid #1f2937}
+    header h1{margin:0;font-size:18px}
+    header .muted{color:#9aa3b2}
+    button, .btn{background:#1f2937;border:1px solid #374151;color:#e5e7eb;border-radius:8px;padding:8px 12px;cursor:pointer}
+    button:hover,.btn:hover{border-color:#4b5563}
+    main{max-width:1200px;margin:24px auto;padding:0 16px}
+
+    .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+    .card{background:#0b1024;border:1px solid #1f2937;border-radius:12px;padding:14px}
+    .card h4{margin:0 0 6px 0;color:#9aa3b2;font-weight:500}
+    .card .num{font-size:26px;font-weight:700}
+
+    section{margin:28px 0}
+    section h2{margin:0 0 10px 0;font-size:18px}
+    table{width:100%;border-collapse:collapse;background:#0b1024;border:1px solid #1f2937;border-radius:12px;overflow:hidden}
+    th,td{padding:10px 12px;border-top:1px solid #1f2937}
+    thead th{background:#0f172a;font-weight:600}
+    tbody tr:hover{background:#0f152c}
+    em{color:#9aa3b2}
+
+    .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #334155;background:#0e162b}
+    .tag.good{color:#10b981;border-color:#195b45;background:rgba(16,185,129,.08)}
+    .tag.warn{color:#f59e0b;border-color:#5b4b19;background:rgba(245,158,11,.08)}
+    .tag.bad{color:#ef4444;border-color:#6f1a1a;background:rgba(239,68,68,.08)}
+    .small{font-size:12px;color:#9aa3b2}
     .row{display:flex;gap:10px;align-items:center}
-    .container{padding:20px;max-width:1150px;margin:0 auto}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:16px 0}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{border-top:1px solid var(--line);padding:10px;vertical-align:top;background:#fff}
-    .table thead th{background:#f7f8fb}
-    .layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-    .side{background:var(--panel);border-right:1px solid var(--line);padding:16px;position:sticky;top:0;height:100vh}
-    .side h3{margin:0 0 12px 0}
-    .navlink{display:block;padding:10px 12px;border-radius:10px;margin-bottom:6px;border:1px solid transparent;cursor:pointer}
-    .navlink.active{background:#eef2ff;border-color:#c7d2fe}
-    .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
-    .pill{padding:3px 8px;border-radius:999px;background:#eef2ff;color:#1e40af;font-size:12px}
-    .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-    .four{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    @media(max-width:1100px){ .layout{grid-template-columns:1fr} .side{height:auto;position:static} .two,.three,.four{grid-template-columns:1fr} }
-    .muted{color:var(--muted)}
-    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
-    .table-actions button{margin-right:6px}
-    .subtle{font-size:12px;color:var(--muted)}
-    .stat{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
   </style>
 </head>
 <body>
+  <!-- Load your Supabase keys -->
+  <script src="/config.js"></script>
+  <!-- Supabase JS v2 -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
-<div class="topbar">
-  <div class="brand">GrowIndia — Admin</div>
-  <div class="row">
-    <a class="btn ghost" href="index.html">Public Jobs</a>
-    <button id="logoutBtn" class="btn ghost">Logout</button>
-  </div>
-</div>
+  <header>
+    <h1>GrowIndia Admin</h1>
+    <div class="row">
+      <span id="whoami" class="muted">Checking session…</span>
+      <button id="btnLogout">Logout</button>
+    </div>
+  </header>
 
-<div class="layout">
-  <aside class="side">
-    <h3>Manage</h3>
-    <a class="navlink active" data-section="companies">Companies</a>
-    <a class="navlink" data-section="jobs">Jobs</a>
-    <a class="navlink" data-section="applications">Applications</a>
-    <a class="navlink" data-section="accounts">Accounts</a>
-    <a class="navlink" data-section="packages">Packages</a>
-    <a class="navlink" data-section="customFields">Custom Fields</a>
-    <a class="navlink" data-section="jobTypes">Job Types</a>
-    <a class="navlink" data-section="reports">Reports</a>
-    <hr style="border-color:var(--line);margin:12px 0"/>
-    <a class="navlink" data-section="lookups">Lookups (legacy)</a>
-    <a class="navlink" data-section="settings">Settings</a>
-    <hr style="border-color:var(--line);margin:12px 0"/>
-    <div id="me" class="muted" style="font-size:12px"></div>
-  </aside>
-
-  <main class="container">
-
-    <!-- ========== COMPANIES ========== -->
-    <section id="companies">
-      <div class="card">
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <h1>Companies</h1>
-          <button id="newCompanyBtn" class="btn">New Company</button>
-        </div>
-        <div id="companyList"></div>
+  <main>
+    <!-- COUNTS (PLACEHOLDERS) -->
+    <section>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <h2>Overview</h2>
+        <button id="btnRefresh">Refresh</button>
       </div>
-
-      <div class="card" id="companyFormCard" style="display:none">
-        <h2 id="companyFormTitle">Create Company</h2>
-        <input type="hidden" id="c_id" />
-        <label>Name</label>
-        <input id="c_name" placeholder="Acme Inc"/>
-        <label>Website</label>
-        <input id="c_website" placeholder="https://example.com"/>
-        <div class="row">
-          <button id="saveCompany" class="btn">Save</button>
-          <button id="cancelCompany" class="btn ghost">Cancel</button>
-        </div>
+      <div class="cards">
+        <div class="card"><h4>Total Jobs</h4><div class="num" id="countTotalJobs">–</div></div>
+        <div class="card"><h4>Active Jobs</h4><div class="num" id="countActiveJobs">–</div></div>
+        <div class="card"><h4>Closed Jobs</h4><div class="num" id="countClosedJobs">–</div></div>
+        <div class="card"><h4>Featured Jobs</h4><div class="num" id="countFeaturedJobs">–</div></div>
+      </div>
+      <div class="cards">
+        <div class="card"><h4>Total Companies</h4><div class="num" id="countCompanies">–</div></div>
+        <div class="card"><h4>Total Applications</h4><div class="num" id="countApps">–</div></div>
+        <div class="card"><h4>Pending Apps</h4><div class="num" id="countAppsPending">–</div></div>
+        <div class="card"><h4>Reviewed Apps</h4><div class="num" id="countAppsReviewed">–</div></div>
       </div>
     </section>
 
-    <!-- ========== JOBS ========== -->
-    <section id="jobs" style="display:none">
-      <div class="card">
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <h1>Jobs</h1>
-          <button id="newJobBtn" class="btn">Post Job</button>
-        </div>
-
-        <div class="toolbar">
-          <label class="muted">With selected:</label>
-          <button class="btn warn" id="bulkActive">Activate</button>
-          <button class="btn warn" id="bulkDraft">Draft</button>
-          <button class="btn warn" id="bulkClosed">Close</button>
-          <button class="btn bad"  id="bulkDelete">Delete</button>
-        </div>
-
-        <div id="jobsTable"></div>
-      </div>
-
-      <div class="card" id="jobFormCard" style="display:none">
-        <h2 id="jobFormTitle">Post Job</h2>
-        <input type="hidden" id="j_id" />
-        <label>Company</label>
-        <select id="j_company"></select>
-
-        <div class="two">
-          <div>
-            <label>Title</label>
-            <input id="j_title" placeholder="Senior React Developer"/>
-          </div>
-          <div>
-            <label>Status</label>
-            <select id="j_status"><option>Active</option><option>Draft</option><option>Closed</option></select>
-          </div>
-        </div>
-
-        <label>Description</label>
-        <textarea id="j_desc" rows="6" placeholder="Role, responsibilities, requirements..."></textarea>
-
-        <div class="three">
-          <div>
-            <label>Industry</label>
-            <select id="j_industry"></select>
-          </div>
-          <div>
-            <label>Job Type</label>
-            <select id="j_jobtype"></select>
-          </div>
-          <div>
-            <label>Seniority Level</label>
-            <select id="j_level"></select>
-          </div>
-        </div>
-
-        <div class="three">
-          <div>
-            <label>Location</label>
-            <select id="j_location"></select>
-          </div>
-          <div>
-            <label>Employment</label>
-            <select id="j_emp">
-              <option>full_time</option><option>part_time</option>
-              <option>contract</option><option>internship</option>
-            </select>
-          </div>
-          <div>
-            <label>Remote?</label>
-            <select id="j_remote"><option value="true">Yes</option><option value="false">No</option></select>
-          </div>
-        </div>
-
-        <div class="three">
-          <div>
-            <label>Salary Min</label>
-            <input id="j_smin" type="number" placeholder="500000"/>
-          </div>
-          <div>
-            <label>Salary Max</label>
-            <input id="j_smax" type="number" placeholder="1500000"/>
-          </div>
-          <div>
-            <label>Currency</label>
-            <select id="j_curr"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option></select>
-          </div>
-        </div>
-
-        <div class="two">
-          <div class="row">
-            <input id="j_featured" type="checkbox" style="width:auto"/>
-            <label for="j_featured">Featured</label>
-          </div>
-          <div class="row">
-            <span class="muted">Views are tracked separately</span>
-          </div>
-        </div>
-
-        <!-- Custom fields render here -->
-        <div class="card" id="customFieldBlock" style="margin-top:12px">
-          <h3>Custom Fields</h3>
-          <div id="customFieldList" class="two"></div>
-          <div class="subtle">Define fields under <strong>Custom Fields</strong>, then they show up here for every job.</div>
-        </div>
-
-        <div class="row">
-          <button id="saveJob" class="btn">Save</button>
-          <button id="cancelJob" class="btn ghost">Cancel</button>
-        </div>
-      </div>
+    <!-- TABLES (PLACEHOLDERS) -->
+    <section>
+      <h2>Jobs</h2>
+      <table id="tblJobs"></table>
     </section>
 
-    <!-- ========== APPLICATIONS ========== -->
-    <section id="applications" style="display:none">
-      <div class="card">
-        <h1>Applications</h1>
-        <div class="toolbar">
-          <label class="muted">With selected → Status:</label>
-          <select id="bulkAppStatus">
-            <option>pending</option><option>reviewed</option><option>shortlisted</option><option>rejected</option><option>hired</option>
-          </select>
-          <button id="applyBulkAppStatus" class="btn">Apply</button>
-        </div>
-        <div id="appsTable"></div>
-      </div>
-
-      <div class="card" id="appDetail" style="display:none">
-        <h2>Applicant</h2>
-        <div class="two">
-          <div>
-            <label>Name</label><input id="ap_name" disabled />
-          </div>
-          <div>
-            <label>Email</label><input id="ap_email" disabled />
-          </div>
-        </div>
-        <div class="two">
-          <div>
-            <label>Job</label><input id="ap_job" disabled />
-          </div>
-          <div>
-            <label>Company</label><input id="ap_company" disabled />
-          </div>
-        </div>
-        <div class="two">
-          <div>
-            <label>Status</label>
-            <select id="ap_status">
-              <option>pending</option><option>reviewed</option><option>shortlisted</option><option>rejected</option><option>hired</option>
-            </select>
-          </div>
-          <div>
-            <label>Resume</label><div><a id="ap_resume" class="btn ghost" href="#" target="_blank">Open Resume</a></div>
-          </div>
-        </div>
-        <label>Notes</label>
-        <textarea id="ap_notes" rows="4" placeholder="Private reviewer notes"></textarea>
-        <div class="row">
-          <button id="saveApp" class="btn">Save</button>
-          <button id="cancelApp" class="btn ghost">Close</button>
-        </div>
-      </div>
+    <section>
+      <h2>Applications</h2>
+      <table id="tblApps"></table>
     </section>
 
-    <!-- ========== ACCOUNTS (from profiles) ========== -->
-    <section id="accounts" style="display:none">
-      <div class="card">
-        <h1>Accounts</h1>
-        <div id="acctTable"></div>
-      </div>
-
-      <div class="card" id="acctForm" style="display:none">
-        <h2>Edit Account</h2>
-        <input type="hidden" id="p_id"/>
-        <div class="two">
-          <div><label>Full name</label><input id="p_name"/></div>
-          <div><label>Role</label>
-            <select id="p_role"><option>candidate</option><option>employer</option><option>admin</option></select>
-          </div>
-        </div>
-        <div class="two">
-          <div><label>Phone</label><input id="p_phone"/></div>
-          <div><label>Location</label><input id="p_loc"/></div>
-        </div>
-        <label>Bio</label><textarea id="p_bio" rows="4"></textarea>
-        <div class="row">
-          <button id="saveAcct" class="btn">Save</button>
-          <button id="cancelAcct" class="btn ghost">Cancel</button>
-        </div>
-      </div>
+    <section>
+      <h2>Accounts</h2>
+      <table id="tblAccounts"></table>
     </section>
 
-    <!-- ========== PACKAGES ========== -->
-    <section id="packages" style="display:none">
-      <div class="card">
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <h1>Packages</h1>
-          <button id="newPkg" class="btn">Create Package</button>
-        </div>
-        <div id="pkgTable"></div>
-      </div>
-
-      <div class="card" id="pkgForm" style="display:none">
-        <h2 id="pkgTitle">Create Package</h2>
-        <input type="hidden" id="pk_id"/>
-        <div class="three">
-          <div><label>Name</label><input id="pk_name" placeholder="Basic / Standard / Premium"/></div>
-          <div><label>Price</label><input id="pk_price" type="number" step="0.01" placeholder="0.00"/></div>
-          <div><label>Currency</label><select id="pk_curr"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option></select></div>
-        </div>
-        <div class="three">
-          <div><label>Duration (days)</label><input id="pk_days" type="number" placeholder="30"/></div>
-          <div><label>Post limit</label><input id="pk_limit" type="number" placeholder="1"/></div>
-          <div><label>Status</label><select id="pk_status"><option>Published</option><option>Draft</option></select></div>
-        </div>
-        <div class="row">
-          <input id="pk_high" type="checkbox" style="width:auto"/>
-          <label for="pk_high">Highlight listing</label>
-        </div>
-        <div class="row">
-          <button id="savePkg" class="btn">Save</button>
-          <button id="cancelPkg" class="btn ghost">Cancel</button>
-        </div>
-      </div>
+    <section>
+      <h2>Companies</h2>
+      <table id="tblCompanies"></table>
     </section>
-
-    <!-- ========== CUSTOM FIELDS ========== -->
-    <section id="customFields" style="display:none">
-      <div class="card">
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <h1>Custom Fields</h1>
-          <button id="newCF" class="btn">Add Field</button>
-        </div>
-        <p class="muted">These appear on the Job form (Custom Fields block).</p>
-        <div id="cfTable"></div>
-      </div>
-
-      <div class="card" id="cfForm" style="display:none">
-        <h2 id="cfTitle">Add Field</h2>
-        <input type="hidden" id="cf_id"/>
-        <div class="three">
-          <div><label>Name</label><input id="cf_name" placeholder="e.g. Shift timing"/></div>
-          <div><label>Type</label>
-            <select id="cf_type">
-              <option>text</option><option>number</option><option>select</option><option>multiselect</option>
-            </select>
-          </div>
-          <div><label>Options (for select/multiselect)</label><input id="cf_opts" placeholder='["Option A","Option B"]'/></div>
-        </div>
-        <div class="row">
-          <button id="saveCF" class="btn">Save</button>
-          <button id="cancelCF" class="btn ghost">Cancel</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== JOB TYPES (attributes) ========== -->
-    <section id="jobTypes" style="display:none">
-      <div class="card"><h1>Job Types</h1></div>
-      <div class="card" id="lkJobTypes"></div>
-    </section>
-
-    <!-- ========== REPORTS ========== -->
-    <section id="reports" style="display:none">
-      <div class="card"><h1>Reports</h1></div>
-      <div class="four" id="statsBlock"></div>
-
-      <div class="card">
-        <h3>Quick Tables</h3>
-        <div class="two">
-          <div>
-            <h4>Most Recent Jobs</h4>
-            <div id="repRecentJobs"></div>
-          </div>
-          <div>
-            <h4>Recent Applications</h4>
-            <div id="repRecentApps"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== LOOKUPS & SETTINGS (unchanged from before) ========== -->
-    <section id="lookups" style="display:none">
-      <div class="card"><h1>Lookups (legacy)</h1><p class="muted">Industries, Levels, Locations are still here for now.</p></div>
-      <div class="card" id="lkIndustries"></div>
-      <div class="card" id="lkLevels"></div>
-      <div class="card" id="lkLocations"></div>
-    </section>
-
-    <section id="settings" style="display:none">
-      <div class="card">
-        <h1>Settings</h1>
-        <p class="muted">More controls can be added next (branding, members, email templates…).</p>
-        <div class="row">
-          <a class="btn ghost" href="dashboard.html">Old Dashboard</a>
-          <a class="btn ghost" href="index.html">Public Jobs</a>
-        </div>
-      </div>
-    </section>
-
   </main>
-</div>
 
-<script>
-  // -------- NAV ----------
-  document.querySelectorAll('.navlink').forEach(a=>{
-    a.onclick = () => {
-      document.querySelectorAll('.navlink').forEach(x=>x.classList.remove('active'));
-      a.classList.add('active');
-      const id=a.dataset.section;
-      ['companies','jobs','applications','accounts','packages','customFields','jobTypes','reports','lookups','settings']
-        .forEach(s=>{ document.getElementById(s).style.display = (s===id?'':'none') });
-    };
-  });
+  <script>
+    // ---------- INIT + ADMIN GUARD ----------
+    const supabase = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
 
-  // -------- AUTH ----------
-  const meEl = document.getElementById('me');
-  document.getElementById('logoutBtn').onclick = () => sbAuth.signOut();
+    // Only listed emails can view admin
+    const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com']; // add more if needed
 
-  // -------- SHORTCUTS ----------
-  const sbc = window.sb.supabase;
-  const toast = (m)=>alert(m);
-  const num = v => v?Number(v):null;
-  const truthy = v => v==='true';
-  const ensureOption = (sel,val)=>{ if(val && ![...sel.options].some(o=>o.value===val)){ const o=document.createElement('option');o.value=val;o.textContent=val;sel.appendChild(o)} };
+    supabase.auth.getSession().then(({ data }) => applyGuard(data.session));
+    supabase.auth.onAuthStateChange((_e, session) => applyGuard(session));
 
-  // -------- REFS (Companies) ----------
-  const companyList = document.getElementById('companyList');
-  const newCompanyBtn = document.getElementById('newCompanyBtn');
-  const companyFormCard = document.getElementById('companyFormCard');
-  const companyFormTitle = document.getElementById('companyFormTitle');
-  const c_id=document.getElementById('c_id'), c_name=document.getElementById('c_name'), c_website=document.getElementById('c_website');
-  const saveCompany=document.getElementById('saveCompany'), cancelCompany=document.getElementById('cancelCompany');
-
-  // -------- REFS (Jobs) ----------
-  const jobsTable=document.getElementById('jobsTable');
-  const newJobBtn=document.getElementById('newJobBtn');
-  const jobFormCard=document.getElementById('jobFormCard'), jobFormTitle=document.getElementById('jobFormTitle');
-  const j_id=document.getElementById('j_id'), j_company=document.getElementById('j_company'), j_title=document.getElementById('j_title'), j_desc=document.getElementById('j_desc');
-  const j_industry=document.getElementById('j_industry'), j_jobtype=document.getElementById('j_jobtype'), j_level=document.getElementById('j_level'), j_location=document.getElementById('j_location');
-  const j_emp=document.getElementById('j_emp'), j_smin=document.getElementById('j_smin'), j_smax=document.getElementById('j_smax'), j_curr=document.getElementById('j_curr'), j_remote=document.getElementById('j_remote'), j_status=document.getElementById('j_status');
-  const j_featured=document.getElementById('j_featured');
-  const saveJob=document.getElementById('saveJob'), cancelJob=document.getElementById('cancelJob');
-
-  // Custom fields block
-  const customFieldBlock = document.getElementById('customFieldBlock');
-  const customFieldList  = document.getElementById('customFieldList');
-
-  // -------- REFS (Applications) ----------
-  const appsTable=document.getElementById('appsTable');
-  const bulkAppStatus=document.getElementById('bulkAppStatus'), applyBulkAppStatus=document.getElementById('applyBulkAppStatus');
-  const appDetail=document.getElementById('appDetail');
-  const ap_name=document.getElementById('ap_name'), ap_email=document.getElementById('ap_email'), ap_job=document.getElementById('ap_job'), ap_company=document.getElementById('ap_company');
-  const ap_resume=document.getElementById('ap_resume'), ap_status=document.getElementById('ap_status'), ap_notes=document.getElementById('ap_notes');
-  const saveApp=document.getElementById('saveApp'), cancelApp=document.getElementById('cancelApp');
-
-  // -------- REFS (Accounts) ----------
-  const acctTable=document.getElementById('acctTable');
-  const acctForm=document.getElementById('acctForm');
-  const p_id=document.getElementById('p_id'), p_name=document.getElementById('p_name'), p_role=document.getElementById('p_role'), p_phone=document.getElementById('p_phone'), p_loc=document.getElementById('p_loc'), p_bio=document.getElementById('p_bio');
-  const saveAcct=document.getElementById('saveAcct'), cancelAcct=document.getElementById('cancelAcct');
-
-  // -------- REFS (Packages) ----------
-  const pkgTable=document.getElementById('pkgTable'), pkgForm=document.getElementById('pkgForm');
-  const newPkg=document.getElementById('newPkg'), savePkg=document.getElementById('savePkg'), cancelPkg=document.getElementById('cancelPkg'), pkgTitle=document.getElementById('pkgTitle');
-  const pk_id=document.getElementById('pk_id'), pk_name=document.getElementById('pk_name'), pk_price=document.getElementById('pk_price'), pk_curr=document.getElementById('pk_curr'), pk_days=document.getElementById('pk_days'), pk_limit=document.getElementById('pk_limit'), pk_status=document.getElementById('pk_status'), pk_high=document.getElementById('pk_high');
-
-  // -------- REFS (Custom Fields) ----------
-  const cfTable=document.getElementById('cfTable'), cfForm=document.getElementById('cfForm');
-  const newCF=document.getElementById('newCF'), saveCF=document.getElementById('saveCF'), cancelCF=document.getElementById('cancelCF'), cfTitle=document.getElementById('cfTitle');
-  const cf_id=document.getElementById('cf_id'), cf_name=document.getElementById('cf_name'), cf_type=document.getElementById('cf_type'), cf_opts=document.getElementById('cf_opts');
-
-  // -------- REFS (Job Types + Lookups) ----------
-  const lkJobTypes=document.getElementById('lkJobTypes');
-  const lkIndustries=document.getElementById('lkIndustries'), lkLevels=document.getElementById('lkLevels'), lkLocations=document.getElementById('lkLocations');
-
-  // -------- REFS (Reports) ----------
-  const statsBlock=document.getElementById('statsBlock'), repRecentJobs=document.getElementById('repRecentJobs'), repRecentApps=document.getElementById('repRecentApps');
-
-  // -------- Data caches ----------
-  let USER=null; let COMPANIES=[]; let LOOKUPS={industries:[],jobTypes:[],levels:[],locations:[]}; let CUSTOM_FIELDS=[];
-
-  // -------- Boot ----------
-  async function boot(){
-    USER = (await sbAuth.currentUser());
-    if(!USER){ alert('Please login.'); window.location.href='index.html'; return }
-    meEl.innerHTML = `<div><span class="pill">Signed in</span> ${USER.email||USER.id}</div>`;
-
-    LOOKUPS = await sbData.getLookups();
-    await Promise.all([loadCompanies(), loadJobs(), loadApps(), loadAccounts(), loadPackages(), loadCustomFields(), loadReports()]);
-    renderLookups(); renderJobTypes();
-  }
-
-  // ================= COMPANIES =================
-  function resetCompanyForm(){ c_id.value=''; c_name.value=''; c_website.value='' }
-  newCompanyBtn.onclick=()=>{ resetCompanyForm(); companyFormTitle.textContent='Create Company'; companyFormCard.style.display='' }
-  cancelCompany.onclick=()=>{ companyFormCard.style.display='none' }
-
-  async function loadCompanies(){
-    const { data, error } = await sbc.from('companies').select('id,name,website,created_at').order('created_at',{ascending:false});
-    if(error){ companyList.innerHTML = '<div class="card">Error: '+error.message+'</div>'; return }
-    COMPANIES = data||[];
-    renderCompanies(); fillCompanySelect();
-  }
-
-  function renderCompanies(){
-    if(!COMPANIES.length){ companyList.innerHTML='<div class="card">No companies yet. Click “New Company”.</div>'; return }
-    const rows = COMPANIES.map(c=>`
-      <tr data-id="${c.id}">
-        <td>${c.name}</td>
-        <td>${c.website || ''}</td>
-        <td>${(c.created_at||'').slice(0,10)}</td>
-        <td class="table-actions">
-          <button class="btn" data-edit="${c.id}">Edit</button>
-          <button class="btn bad" data-del="${c.id}">Delete</button>
-        </td>
-      </tr>`).join('');
-    companyList.innerHTML = `<table class="table"><thead><tr><th>Name</th><th>Website</th><th>Created</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
-    companyList.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editCompany(b.dataset.edit));
-    companyList.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteCompany(b.dataset.del));
-    companyList.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>editCompany(tr.dataset.id));
-  }
-
-  function fillCompanySelect(){
-    j_company.innerHTML = '';
-    (COMPANIES||[]).forEach(c=>{
-      const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; j_company.appendChild(o);
-    });
-  }
-
-  async function editCompany(id){
-    const c = COMPANIES.find(x=>x.id===id); if(!c) return;
-    c_id.value=c.id; c_name.value=c.name; c_website.value=c.website||'';
-    companyFormTitle.textContent='Edit Company'; companyFormCard.style.display='';
-  }
-  async function deleteCompany(id){
-    if(!confirm('Delete this company and all its jobs?')) return;
-    const { error } = await sbc.from('companies').delete().eq('id', id);
-    if(error){ toast(error.message); return }
-    await loadCompanies(); await loadJobs(); toast('Deleted.');
-  }
-  saveCompany.onclick=async()=>{
-    if(!c_name.value.trim()) return toast('Company name is required.');
-    const payload = { name: c_name.value.trim(), website: c_website.value.trim()||null };
-    if(c_id.value){
-      const { error } = await sbc.from('companies').update(payload).eq('id', c_id.value);
-      if(error) return toast(error.message);
-    }else{
-      const body={ id: crypto.randomUUID(), ...payload };
-      const { error } = await sbc.from('companies').insert(body);
-      if(error) return toast(error.message);
-    }
-    companyFormCard.style.display='none'; resetCompanyForm();
-    await loadCompanies(); toast('Saved.');
-  }
-
-  // ================= JOBS =================
-  function fillSelect(sel, arr){
-    sel.innerHTML='';
-    (arr||[]).forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o) });
-  }
-
-  function resetJobForm(){
-    j_id.value='';
-    if(COMPANIES[0]) j_company.value=COMPANIES[0].id;
-    j_title.value=''; j_desc.value='';
-    fillSelect(j_industry, LOOKUPS.industries);
-    fillSelect(j_jobtype,   LOOKUPS.jobTypes);
-    fillSelect(j_level,     LOOKUPS.levels);
-    fillSelect(j_location,  LOOKUPS.locations);
-    j_emp.value='full_time'; j_smin.value=''; j_smax.value=''; j_curr.value='INR'; j_remote.value='true'; j_status.value='Active';
-    j_featured.checked=false;
-    renderCustomFieldsForJob({});
-  }
-
-  newJobBtn.onclick=()=>{ resetJobForm(); jobFormTitle.textContent='Post Job'; jobFormCard.style.display='' }
-  cancelJob.onclick=()=>{ jobFormCard.style.display='none' }
-
-  async function loadJobs(){
-    const { data, error } = await sbc
-      .from('jobs')
-      .select('id,title,location,employment,currency,salary_min,salary_max,status,industry,job_type,level,featured,created_at,companies!inner(id,name)')
-      .order('created_at',{ascending:false});
-    if(error){ jobsTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
-    renderJobs(data||[]);
-  }
-
-  function renderJobs(rows){
-    if(!rows.length){ jobsTable.innerHTML='<div class="card">No jobs yet. Click “Post Job”.</div>'; return }
-    const html = rows.map(j=>`
-      <tr data-id="${j.id}">
-        <td><input type="checkbox" class="jobChk" value="${j.id}"/></td>
-        <td><strong>${j.title}</strong><br><small class="muted">${j.companies?.name||''}</small></td>
-        <td>${j.industry||''}</td><td>${j.job_type||''}</td><td>${j.level||''}</td>
-        <td>${j.location||''}</td><td>${j.employment||''}</td>
-        <td>${j.currency||''} ${j.salary_min||''}${j.salary_max?(' - '+j.salary_max):''}</td>
-        <td>${j.featured?'<span class="badge">Featured</span>':''} <span class="badge">${j.status}</span></td>
-        <td class="table-actions">
-          <button class="btn" data-edit="${j.id}">Edit</button>
-          <button class="btn bad" data-del="${j.id}">Delete</button>
-        </td>
-      </tr>
-    `).join('');
-    jobsTable.innerHTML = `<table class="table">
-      <thead>
-        <tr><th><input type="checkbox" id="jobChkAll"/></th><th>Job</th><th>Industry</th><th>Type</th><th>Level</th><th>Location</th><th>Employment</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
-      </thead><tbody>${html}</tbody></table>`;
-    document.getElementById('jobChkAll').onclick = (e)=>{
-      document.querySelectorAll('.jobChk').forEach(ch=>ch.checked=e.target.checked);
-    };
-    jobsTable.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editJob(b.dataset.edit));
-    jobsTable.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteJob(b.dataset.del));
-    jobsTable.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>editJob(tr.dataset.id));
-  }
-
-  async function editJob(id){
-    const { data, error } = await sbc.from('jobs').select('*').eq('id', id).single();
-    if(error){ toast(error.message); return }
-    resetJobForm();
-    j_id.value=data.id; j_company.value=data.company_id;
-    j_title.value=data.title||''; j_desc.value=data.description||'';
-    ensureOption(j_industry, data.industry); j_industry.value=data.industry||'';
-    ensureOption(j_jobtype, data.job_type); j_jobtype.value=data.job_type||'';
-    ensureOption(j_level, data.level); j_level.value=data.level||'';
-    ensureOption(j_location, data.location); j_location.value=data.location||'';
-    j_emp.value=data.employment||'full_time'; j_smin.value=data.salary_min||''; j_smax.value=data.salary_max||''; j_curr.value=data.currency||'INR'; j_remote.value=String(!!data.is_remote); j_status.value=data.status||'Active';
-    j_featured.checked=!!data.featured;
-    // Load custom values
-    const { data:vals } = await sbc.from('job_custom_values').select('field_id,value').eq('job_id', id);
-    const map = {}; (vals||[]).forEach(v=>map[v.field_id]=v.value);
-    renderCustomFieldsForJob(map);
-    jobFormTitle.textContent='Edit Job'; jobFormCard.style.display='';
-  }
-
-  async function deleteJob(id){
-    if(!confirm('Delete this job?')) return;
-    const { error } = await sbc.from('jobs').delete().eq('id', id);
-    if(error) return toast(error.message);
-    await loadJobs();
-  }
-
-  function selectedJobIds(){ return [...document.querySelectorAll('.jobChk:checked')].map(ch=>ch.value) }
-  async function setJobStatusBulk(ids, status){
-    if(!ids.length) return toast('Select at least one job.');
-    const { error } = await sbc.from('jobs').update({ status }).in('id', ids);
-    if(error) return toast(error.message);
-    await loadJobs();
-  }
-  document.getElementById('bulkActive').onclick = ()=> setJobStatusBulk(selectedJobIds(), 'Active');
-  document.getElementById('bulkDraft').onclick  = ()=> setJobStatusBulk(selectedJobIds(), 'Draft');
-  document.getElementById('bulkClosed').onclick = ()=> setJobStatusBulk(selectedJobIds(), 'Closed');
-  document.getElementById('bulkDelete').onclick = async()=>{
-    const ids = selectedJobIds(); if(!ids.length) return toast('Select at least one job.');
-    if(!confirm('Delete selected jobs?')) return;
-    const { error } = await sbc.from('jobs').delete().in('id', ids);
-    if(error) return toast(error.message);
-    await loadJobs();
-  };
-
-  // Save job + custom values
-  saveJob.onclick=async()=>{
-    if(!j_title.value.trim() || !j_desc.value.trim()) return toast('Title and Description are required.');
-    if(!j_company.value) return toast('Select a company.');
-    const payload = {
-      company_id:j_company.value, title:j_title.value.trim(), description:j_desc.value.trim(),
-      location:j_location.value||null, employment:j_emp.value,
-      salary_min:num(j_smin.value), salary_max:num(j_smax.value), currency:j_curr.value||'INR',
-      is_remote: truthy(j_remote.value), status: j_status.value,
-      industry:j_industry.value||null, job_type:j_jobtype.value||null, level:j_level.value||null,
-      featured: !!j_featured.checked
-    };
-
-    let jobId = j_id.value;
-    if(jobId){
-      const { error } = await sbc.from('jobs').update(payload).eq('id', jobId);
-      if(error) return toast(error.message);
-    }else{
-      jobId = crypto.randomUUID();
-      const body={ id: jobId, ...payload };
-      const { error } = await sbc.from('jobs').insert(body);
-      if(error) return toast(error.message);
-    }
-    // upsert custom values
-    const vals = collectCustomValues();
-    for(const v of vals){
-      await sbc.from('job_custom_values').upsert({ job_id: jobId, field_id: v.field_id, value: v.value });
-    }
-    jobFormCard.style.display='none';
-    await loadJobs();
-    toast('Saved.');
-  };
-
-  // ===== Custom fields in Job form =====
-  async function loadCustomFields(){
-    const { data, error } = await sbc.from('job_custom_fields').select('*').order('created_at',{ascending:true});
-    if(!error){ CUSTOM_FIELDS=data||[] }
-  }
-  function renderCustomFieldsForJob(map){
-    customFieldList.innerHTML='';
-    if(!(CUSTOM_FIELDS||[]).length){ customFieldBlock.style.display='none'; return }
-    customFieldBlock.style.display='';
-    CUSTOM_FIELDS.forEach(f=>{
-      const wrap=document.createElement('div');
-      wrap.innerHTML=`<label>${f.name}</label>`;
-      let el;
-      if(f.field_type==='text'||f.field_type==='number'){
-        el=document.createElement('input');
-        if(f.field_type==='number') el.type='number';
-        el.value = map[f.id]||'';
-      }else{
-        const opts = Array.isArray(f.options)?f.options:JSON.parse(f.options||'[]');
-        if(f.field_type==='select'){
-          el=document.createElement('select'); opts.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; el.appendChild(op) });
-          if(map[f.id]) ensureOption(el, map[f.id]); el.value=map[f.id]||'';
-        }else{ // multiselect
-          el=document.createElement('select'); el.multiple=true;
-          opts.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; el.appendChild(op) });
-          const arr = (map[f.id]||'').split(',').map(s=>s.trim()).filter(Boolean);
-          [...el.options].forEach(op=>{ if(arr.includes(op.value)) op.selected=true });
-        }
+    async function applyGuard(session) {
+      const whoami = document.getElementById('whoami');
+      if (!session) {
+        whoami.textContent = 'Not signed in';
+        window.location.href = '/'; // or '/login.html'
+        return;
       }
-      el.dataset.fid=f.id;
-      wrap.appendChild(el);
-      customFieldList.appendChild(wrap);
-    });
-  }
-  function collectCustomValues(){
-    const nodes = customFieldList.querySelectorAll('[data-fid]');
-    const out=[];
-    nodes.forEach(n=>{
-      const fid=n.dataset.fid;
-      let v='';
-      if(n.multiple){ v=[...n.selectedOptions].map(o=>o.value).join(', ') }
-      else{ v=n.value||'' }
-      out.push({ field_id:fid, value:v });
-    });
-    return out;
-  }
-
-  // ================= APPLICATIONS =================
-  async function loadApps(){
-    let { data, error } = await sbc.from('v_employer_applications').select('*').order('applied_at',{ascending:false}).limit(500);
-    if(error){ appsTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
-    renderApps(data||[]);
-  }
-
-  function renderApps(rows){
-    if(!rows.length){ appsTable.innerHTML='<div class="card">No applications yet.</div>'; return }
-    const html = rows.map(r=>`
-      <tr data-id="${r.application_id}">
-        <td><input type="checkbox" class="appChk" value="${r.application_id}"/></td>
-        <td>${(r.applied_at||'').slice(0,10)}</td>
-        <td>${r.applicant_name||''}<br><small class="muted">${r.applicant_email||''}</small></td>
-        <td>${r.company_name||''}</td>
-        <td>${r.job_title||''}</td>
-        <td><span class="badge">${r.application_status}</span></td>
-        <td>${r.resume_url?`<span class="subtle">has resume</span>`:'-'}</td>
-      </tr>`).join('');
-    appsTable.innerHTML = `<table class="table">
-      <thead>
-        <tr><th><input type="checkbox" id="appChkAll"/></th><th>Date</th><th>Applicant</th><th>Company</th><th>Job</th><th>Status</th><th>Resume</th></tr>
-      </thead><tbody>${html}</tbody></table>`;
-    document.getElementById('appChkAll').onclick = (e)=>{
-      document.querySelectorAll('.appChk').forEach(ch=>ch.checked=e.target.checked);
-    };
-    appsTable.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openApp(tr.dataset.id));
-  }
-
-  applyBulkAppStatus.onclick = async()=>{
-    const ids = [...document.querySelectorAll('.appChk:checked')].map(ch=>ch.value);
-    if(!ids.length) return toast('Select applications first.');
-    const status = bulkAppStatus.value;
-    const { error } = await sbc.from('applications').update({ status }).in('id', ids);
-    if(error) return toast(error.message);
-    await loadApps();
-    toast('Updated.');
-  };
-
-  async function openApp(id){
-    // find base info from view
-    const { data : row } = await sbc.from('v_employer_applications').select('*').eq('application_id', id).single();
-    if(!row){ return }
-    ap_name.value=row.applicant_name||''; ap_email.value=row.applicant_email||''; ap_job.value=row.job_title||''; ap_company.value=row.company_name||'';
-    ap_status.value=row.application_status||'pending';
-    // fetch raw for notes/resume
-    const { data } = await sbc.from('applications').select('*').eq('id', id).single();
-    ap_notes.value=data?.notes||'';
-    // sign resume
-    if(data?.resume_url){
-      const signed = await sbUploads.signedUrlMaybe(data.resume_url);
-      if(signed){ ap_resume.href=signed; ap_resume.textContent='Open Resume' } else { ap_resume.href='#'; ap_resume.textContent='No file' }
-    }else{ ap_resume.href='#'; ap_resume.textContent='No file' }
-    appDetail.dataset.id=id; appDetail.style.display='';
-  }
-  cancelApp.onclick = ()=>{ appDetail.style.display='none' }
-  saveApp.onclick = async()=>{
-    const id = appDetail.dataset.id;
-    const { error } = await sbc.from('applications').update({ status: ap_status.value, notes: ap_notes.value }).eq('id', id);
-    if(error) return toast(error.message);
-    appDetail.style.display='none';
-    await loadApps();
-    toast('Saved.');
-  };
-
-  // ================= ACCOUNTS (profiles) =================
-  async function loadAccounts(){
-    const { data, error } = await sbc.from('profiles').select('id,email,full_name,phone,location,role,created_at').order('created_at',{ascending:false});
-    if(error){ acctTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
-    renderAccounts(data||[]);
-  }
-  function renderAccounts(rows){
-    if(!rows.length){ acctTable.innerHTML='<div class="card">No accounts.</div>'; return }
-    const html = rows.map(p=>`
-      <tr data-id="${p.id}">
-        <td>${p.full_name||'-'}</td>
-        <td>${p.email||'-'}</td>
-        <td><span class="badge">${p.role||'-'}</span></td>
-        <td>${p.phone||'-'}</td><td>${p.location||'-'}</td>
-        <td>${(p.created_at||'').slice(0,10)}</td>
-        <td class="table-actions"><button class="btn" data-edit="${p.id}">Edit</button></td>
-      </tr>`).join('');
-    acctTable.innerHTML = `<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Phone</th><th>Location</th><th>Created</th><th>Action</th></tr></thead><tbody>${html}</tbody></table>`;
-    acctTable.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editAcct(b.dataset.edit));
-    acctTable.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>editAcct(tr.dataset.id));
-  }
-  async function editAcct(id){
-    const { data, error } = await sbc.from('profiles').select('*').eq('id', id).single();
-    if(error) return toast(error.message);
-    p_id.value=data.id; p_name.value=data.full_name||''; p_role.value=data.role||'candidate'; p_phone.value=data.phone||''; p_loc.value=data.location||''; p_bio.value=data.bio||'';
-    acctForm.style.display='';
-  }
-  cancelAcct.onclick=()=>{ acctForm.style.display='none' }
-  saveAcct.onclick=async()=>{
-    const payload={ full_name:p_name.value||null, role:p_role.value, phone:p_phone.value||null, location:p_loc.value||null, bio:p_bio.value||null };
-    const { error } = await sbc.from('profiles').update(payload).eq('id', p_id.value);
-    if(error) return toast(error.message);
-    acctForm.style.display='none'; await loadAccounts(); toast('Saved.');
-  }
-
-  // ================= PACKAGES =================
-  newPkg.onclick=()=>{ resetPkg(); pkgTitle.textContent='Create Package'; pkgForm.style.display='' }
-  cancelPkg.onclick=()=>{ pkgForm.style.display='none' }
-  function resetPkg(){ pk_id.value=''; pk_name.value=''; pk_price.value=''; pk_curr.value='INR'; pk_days.value=30; pk_limit.value=1; pk_status.value='Published'; pk_high.checked=false }
-  async function loadPackages(){
-    const { data, error } = await sbc.from('packages').select('*').order('created_at',{ascending:false});
-    if(error){ pkgTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
-    renderPackages(data||[]);
-  }
-  function renderPackages(rows){
-    if(!rows.length){ pkgTable.innerHTML='<div class="card">No packages yet.</div>'; return }
-    const html=rows.map(p=>`
-      <tr data-id="${p.id}">
-        <td><strong>${p.name}</strong> ${p.highlight?'<span class="badge">Highlight</span>':''}</td>
-        <td>${p.currency} ${p.price}</td>
-        <td>${p.duration_days} days</td>
-        <td>${p.post_limit} posts</td>
-        <td><span class="badge">${p.status}</span></td>
-        <td class="table-actions">
-          <button class="btn" data-edit="${p.id}">Edit</button>
-          <button class="btn bad" data-del="${p.id}">Delete</button>
-        </td>
-      </tr>`).join('');
-    pkgTable.innerHTML=`<table class="table"><thead><tr><th>Package</th><th>Price</th><th>Duration</th><th>Post limit</th><th>Status</th><th>Actions</th></tr></thead><tbody>${html}</tbody></table>`;
-    pkgTable.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editPkg(b.dataset.edit));
-    pkgTable.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>delPkg(b.dataset.del));
-    pkgTable.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>editPkg(tr.dataset.id));
-  }
-  async function editPkg(id){
-    const { data, error } = await sbc.from('packages').select('*').eq('id', id).single();
-    if(error) return toast(error.message);
-    pk_id.value=data.id; pk_name.value=data.name; pk_price.value=data.price; pk_curr.value=data.currency; pk_days.value=data.duration_days; pk_limit.value=data.post_limit; pk_status.value=data.status; pk_high.checked=!!data.highlight;
-    pkgTitle.textContent='Edit Package'; pkgForm.style.display='';
-  }
-  async function delPkg(id){
-    if(!confirm('Delete package?')) return;
-    const { error } = await sbc.from('packages').delete().eq('id', id);
-    if(error) return toast(error.message);
-    await loadPackages();
-  }
-  savePkg.onclick=async()=>{
-    const payload={ name:pk_name.value.trim(), price:num(pk_price.value)||0, currency:pk_curr.value, duration_days:num(pk_days.value)||30, post_limit:num(pk_limit.value)||1, status:pk_status.value, highlight:!!pk_high.checked };
-    if(!payload.name) return toast('Name required');
-    if(pk_id.value){ const { error } = await sbc.from('packages').update(payload).eq('id', pk_id.value); if(error) return toast(error.message) }
-    else{ const { error } = await sbc.from('packages').insert({ id:crypto.randomUUID(), ...payload }); if(error) return toast(error.message) }
-    pkgForm.style.display='none'; await loadPackages(); toast('Saved.');
-  };
-
-  // ================= CUSTOM FIELDS =================
-  newCF.onclick=()=>{ resetCF(); cfTitle.textContent='Add Field'; cfForm.style.display='' }
-  cancelCF.onclick=()=>{ cfForm.style.display='none' }
-  function resetCF(){ cf_id.value=''; cf_name.value=''; cf_type.value='text'; cf_opts.value='' }
-  async function renderCF(){
-    const { data, error } = await sbc.from('job_custom_fields').select('*').order('created_at',{ascending:true});
-    if(error) { cfTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
-    CUSTOM_FIELDS=data||[];
-    if(!CUSTOM_FIELDS.length){ cfTable.innerHTML='<div class="card">No custom fields.</div>'; return }
-    const rows=CUSTOM_FIELDS.map(f=>`
-      <tr data-id="${f.id}">
-        <td>${f.name}</td>
-        <td><span class="badge">${f.field_type}</span></td>
-        <td>${(Array.isArray(f.options)?f.options:JSON.parse(f.options||'[]')).join(', ')}</td>
-        <td class="table-actions">
-          <button class="btn" data-edit="${f.id}">Edit</button>
-          <button class="btn bad" data-del="${f.id}">Delete</button>
-        </td>
-      </tr>`).join('');
-    cfTable.innerHTML=`<table class="table"><thead><tr><th>Name</th><th>Type</th><th>Options</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
-    cfTable.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editCF(b.dataset.edit));
-    cfTable.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>delCF(b.dataset.del));
-    cfTable.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>editCF(tr.dataset.id));
-  }
-  async function editCF(id){
-    const { data, error } = await sbc.from('job_custom_fields').select('*').eq('id', id).single();
-    if(error) return toast(error.message);
-    cf_id.value=data.id; cf_name.value=data.name; cf_type.value=data.field_type;
-    cf_opts.value = Array.isArray(data.options)?JSON.stringify(data.options): (data.options||'');
-    cfTitle.textContent='Edit Field'; cfForm.style.display='';
-  }
-  async function delCF(id){
-    if(!confirm('Delete field? (values on jobs will also be removed)')) return;
-    const { error } = await sbc.from('job_custom_fields').delete().eq('id', id);
-    if(error) return toast(error.message);
-    await renderCF(); await loadCustomFields();
-  }
-  saveCF.onclick=async()=>{
-    const payload={ name:cf_name.value.trim(), field_type:cf_type.value, options: cf_opts.value.trim()? JSON.parse(cf_opts.value.trim()) : [] };
-    if(!payload.name) return toast('Name required');
-    if(cf_id.value){ const { error } = await sbc.from('job_custom_fields').update(payload).eq('id', cf_id.value); if(error) return toast(error.message) }
-    else { const { error } = await sbc.from('job_custom_fields').insert({ id:crypto.randomUUID(), ...payload }); if(error) return toast(error.message) }
-    cfForm.style.display='none'; await renderCF(); await loadCustomFields(); toast('Saved.');
-  };
-
-  async function loadReports(){
-    // counters
-    const { data:cnt } = await sbc.from('v_admin_counts').select('*').single();
-    if(cnt){
-      statsBlock.innerHTML = `
-        <div class="stat"><div class="muted">Total Jobs</div><h2>${cnt.total_jobs}</h2></div>
-        <div class="stat"><div class="muted">Active Jobs</div><h2>${cnt.active_jobs}</h2></div>
-        <div class="stat"><div class="muted">Closed Jobs</div><h2>${cnt.closed_jobs}</h2></div>
-        <div class="stat"><div class="muted">Featured Jobs</div><h2>${cnt.featured_jobs}</h2></div>
-        <div class="stat"><div class="muted">Total Companies</div><h2>${cnt.total_companies}</h2></div>
-        <div class="stat"><div class="muted">Applications</div><h2>${cnt.total_apps}</h2><div class="subtle">Pending ${cnt.pending_apps} • Reviewed ${cnt.reviewed_apps} • Shortlisted ${cnt.shortlisted_apps} • Rejected ${cnt.rejected_apps} • Hired ${cnt.hired_apps}</div></div>
-      `;
+      const email = session.user.email;
+      whoami.textContent = email;
+      if (!ADMIN_EMAILS.includes(email)) {
+        alert('You are not allowed to access the admin.');
+        window.location.href = '/';
+        return;
+      }
+      // Once we pass guard, load everything
+      await refreshAll();
     }
-    const { data:jobs } = await sbc.from('jobs').select('title,created_at,companies!inner(name)').order('created_at',{ascending:false}).limit(8);
-    repRecentJobs.innerHTML = jobs?.length ? `<table class="table"><thead><tr><th>Title</th><th>Company</th><th>Date</th></tr></thead><tbody>${
-      jobs.map(j=>`<tr><td>${j.title}</td><td>${j.companies?.name||''}</td><td>${(j.created_at||'').slice(0,10)}</td></tr>`).join('')
-    }</tbody></table>` : '<div class="card">No data</div>';
 
-    const { data:apps } = await sbc.from('v_employer_applications').select('applicant_name,company_name,job_title,applied_at').order('applied_at',{ascending:false}).limit(8);
-    repRecentApps.innerHTML = apps?.length ? `<table class="table"><thead><tr><th>Applicant</th><th>Job</th><th>Date</th></tr></thead><tbody>${
-      apps.map(a=>`<tr><td>${a.applicant_name}</td><td>${a.job_title}</td><td>${(a.applied_at||'').slice(0,10)}</td></tr>`).join('')
-    }</tbody></table>` : '<div class="card">No data</div>';
-  }
-
-  // ====== Job Types (using lookup_job_types) + other lookups ======
-  function renderLookupCard(el, title, table, items){
-    el.innerHTML = `
-      <h2>${title}</h2>
-      <div class="row">
-        <input id="${table}New" placeholder="Add new ${title.slice(0,-1)}"/>
-        <button class="btn" id="${table}Add">Add</button>
-      </div>
-      <div style="margin-top:10px">
-        ${items.length?`<table class="table"><thead><tr><th>Name</th><th>Actions</th></tr></thead><tbody>
-          ${items.map(n=>`<tr><td>${n}</td><td><button class="btn bad" data-del="${n}">Delete</button></td></tr>`).join('')}
-        </tbody></table>`:'<div class="card">No items yet.</div>'}
-      </div>`;
-    el.querySelector(`#${table}Add`).onclick = async()=>{
-      const v = el.querySelector(`#${table}New`).value.trim();
-      if(!v) return;
-      const { error } = await sbc.from(table).insert({ name:v });
-      if(error) return toast(error.message);
-      LOOKUPS = await sbData.getLookups();
-      renderLookups(); renderJobTypes();
+    document.getElementById('btnLogout').onclick = async () => {
+      await supabase.auth.signOut();
+      window.location.href = '/';
     };
-    el.querySelectorAll('button[data-del]').forEach(b=>b.onclick=async()=>{
-      if(!confirm('Delete this value?')) return;
-      const { error } = await sbc.from(table).delete().eq('name', b.dataset.del);
-      if(error) return toast(error.message);
-      LOOKUPS = await sbData.getLookups();
-      renderLookups(); renderJobTypes();
-    });
-  }
-  function renderLookups(){
-    renderLookupCard(lkIndustries, 'Industries', 'lookup_industries', LOOKUPS.industries);
-    renderLookupCard(lkLevels,     'Seniority Levels', 'lookup_levels', LOOKUPS.levels);
-    renderLookupCard(lkLocations,  'Locations',  'lookup_locations', LOOKUPS.locations);
-    // if job form open, refresh selects
-    if(jobFormCard.style.display!=='none'){
-      fillSelect(j_industry, LOOKUPS.industries); ensureOption(j_industry, j_industry.value);
-      fillSelect(j_level, LOOKUPS.levels);         ensureOption(j_level, j_level.value);
-      fillSelect(j_location, LOOKUPS.locations);   ensureOption(j_location, j_location.value);
+
+    document.getElementById('btnRefresh').onclick = refreshAll;
+
+    // ---------- SMALL TABLE RENDERER ----------
+    function renderTable(targetId, rows, columns) {
+      const el = document.getElementById(targetId);
+      if (!rows || rows.length === 0) { el.innerHTML = '<em>No data</em>'; return; }
+      const thead = '<thead><tr>' + columns.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead>';
+      const tbody = '<tbody>' + rows.map(r => {
+        return '<tr>' + columns.map(c => {
+          const cell = c.render ? c.render(r) : (r[c.key] ?? '');
+          return `<td>${cell}</td>`;
+        }).join('') + '</tr>';
+      }).join('') + '</tbody>';
+      el.innerHTML = thead + tbody;
     }
-  }
-  function renderJobTypes(){ renderLookupCard(lkJobTypes, 'Job Types', 'lookup_job_types', LOOKUPS.jobTypes) }
 
-  // kick off
-  boot(); renderCF(); // render custom fields table after boot fetch
-</script>
+    // ---------- LOADERS (READ FROM VIEWS) ----------
+    async function loadCounts() {
+      const { data, error } = await supabase.from('v_admin_counts').select('*').limit(1).maybeSingle();
+      if (error) { console.error(error); return; }
+      const d = data || {};
+      setNum('countTotalJobs', d.total_jobs);
+      setNum('countActiveJobs', d.active_jobs);
+      setNum('countClosedJobs', d.closed_jobs);
+      setNum('countFeaturedJobs', d.featured_jobs);
+      setNum('countCompanies', d.total_companies);
+      setNum('countApps', d.total_apps);
+      setNum('countAppsPending', d.pending_apps);
+      setNum('countAppsReviewed', d.reviewed_apps);
+    }
+    function setNum(id, v){ document.getElementById(id).textContent = (v ?? 0); }
 
+    async function loadJobs() {
+      const { data, error } = await supabase
+        .from('v_admin_jobs_list')
+        .select('*')
+        .order('created_at', { ascending:false });
+      if (error) { console.error(error); return; }
+      renderTable('tblJobs', data, [
+        { key:'id', label:'ID' },
+        { key:'title', label:'Title' },
+        { key:'company_name', label:'Company' },
+        { key:'status', label:'Status', render: r => `<span class="tag ${r.status==='active'?'good':(r.status==='closed'?'bad':'')}">${r.status}</span>` },
+        { key:'featured', label:'Featured' },
+        { key:'employment', label:'Type' },
+        { key:'is_remote', label:'Remote' },
+        { key:'location', label:'Location' },
+        { key:'created_at', label:'Created', render:r => `<span class="small">${new Date(r.created_at).toLocaleString()}</span>` }
+      ]);
+    }
+
+    async function loadApps() {
+      const { data, error } = await supabase
+        .from('v_admin_applications_list')
+        .select('*')
+        .order('created_at', { ascending:false });
+      if (error) { console.error(error); return; }
+      renderTable('tblApps', data, [
+        { key:'id', label:'ID' },
+        { key:'job_title', label:'Job' },
+        { key:'applicant_name', label:'Applicant' },
+        { key:'applicant_email', label:'Email' },
+        { key:'status', label:'Status', render: r => `<span class="tag">${r.status}</span>` },
+        { key:'created_at', label:'Applied', render:r => `<span class="small">${new Date(r.created_at).toLocaleString()}</span>` }
+      ]);
+    }
+
+    async function loadAccounts() {
+      const { data, error } = await supabase
+        .from('v_admin_accounts')
+        .select('*')
+        .order('created_at', { ascending:false });
+      if (error) { console.error(error); return; }
+      renderTable('tblAccounts', data, [
+        { key:'id', label:'ID' },
+        { key:'full_name', label:'Name' },
+        { key:'email', label:'Email' },
+        { key:'role', label:'Role' },
+        { key:'company_name', label:'Company' },
+        { key:'created_at', label:'Created', render:r => `<span class="small">${new Date(r.created_at).toLocaleDateString()}</span>` }
+      ]);
+    }
+
+    async function loadCompanies() {
+      const { data, error } = await supabase
+        .from('v_admin_companies')
+        .select('*')
+        .order('created_at', { ascending:false });
+      if (error) { console.error(error); return; }
+      renderTable('tblCompanies', data, [
+        { key:'id', label:'ID' },
+        { key:'name', label:'Name' },
+        { key:'website', label:'Website', render:r => r.website ? `<a class="btn" href="${r.website}" target="_blank">Open</a>` : '' },
+        { key:'jobs_count', label:'Jobs' },
+        { key:'created_at', label:'Created', render:r => `<span class="small">${new Date(r.created_at).toLocaleDateString()}</span>` }
+      ]);
+    }
+
+    async function refreshAll(){
+      await Promise.all([loadCounts(), loadJobs(), loadApps(), loadAccounts(), loadCompanies()]);
+    }
+  </script>
 </body>
 </html>
