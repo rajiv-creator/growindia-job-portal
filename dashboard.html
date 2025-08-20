@@ -1,86 +1,202 @@
-<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>GrowIndia — Dashboard</title>
-<link rel="stylesheet" href="styles.css"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script><script src="app.js"></script></head>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GrowIndia — Dashboard</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
 <body>
-<nav><div class="brand">GrowIndia — Dashboard</div><div>
-<a class="btn ghost" href="index.html">Jobs</a>
-<button id="logoutBtn" class="btn ghost">Logout</button></div></nav>
+<nav>
+  <div class="brand">GrowIndia — Dashboard</div>
+  <div class="row">
+    <a class="btn ghost" href="index.html">Jobs</a>
+    <button id="logoutBtn" class="btn ghost">Logout</button>
+  </div>
+</nav>
+
 <div class="container">
-<div id="authGate" class="card"><h2>Welcome</h2><p>Sign in to post jobs or apply.</p><button id="signinBtn" class="btn">Send magic link</button></div>
-<section id="profile" style="display:none"><div class="card"><h2>My Profile</h2><div id="whoami"></div></div></section>
-<section id="company" style="display:none"><div class="card"><h2>Company</h2><div id="companyList"></div><h3>Create / Update</h3>
-<label>Name</label><input id="c_name"/><label>Website</label><input id="c_website" placeholder="https://example.com"/>
-<button id="saveCompany" class="btn">Save Company</button></div></section>
-<section id="postjob" style="display:none"><div class="card"><h2>Post a Job</h2>
-<label>Company</label><select id="j_company"></select><label>Title</label><input id="j_title"/>
-<label>Description</label><textarea id="j_desc" rows="5"></textarea>
-<div class="grid"><div><label>Location</label><input id="j_loc" placeholder="Remote (India)"/></div>
-<div><label>Employment</label><select id="j_emp"><option value="full_time">Full-time</option><option value="part_time">Part-time</option><option value="contract">Contract</option><option value="internship">Internship</option></select></div></div>
-<div class="grid"><div><label>Salary Min</label><input id="j_smin" type="number"/></div><div><label>Salary Max</label><input id="j_smax" type="number"/></div><div><label>Currency</label><input id="j_curr" value="INR"/></div><div><label>Remote?</label><select id="j_remote"><option value="true">Yes</option><option value="false">No</option></select></div></div>
-<button id="postJob" class="btn">Publish Job</button></div></section>
-<section id="myjobs" style="display:none"><div class="card"><h2>My Jobs</h2><div id="jobsList"></div></div></section>
-<section id="apps" style="display:none"><div class="card"><h2>Applications (for my jobs)</h2><div id="appsTable"></div></div></section>
-<section id="applyHere" style="display:none"><div class="card"><h2>Apply to Job</h2><p id="applyJobId" class="badge"></p>
-<label>Resume URL</label><input id="a_resume" placeholder="https://..."/><label>Cover Letter</label><textarea id="a_cover" rows="6"></textarea>
-<button id="applyBtn" class="btn">Submit Application</button></div></section>
-</div><footer>© GrowIndia</footer>
+  <div id="authGate" class="card">
+    <h2>Welcome</h2>
+    <p>Sign in to post jobs or apply.</p>
+    <button id="signinBtn" class="btn">Send magic link</button>
+  </div>
+
+  <div id="tabs" class="tabbar" style="display:none">
+    <span class="tab active" data-tab="company">Company</span>
+    <span class="tab" data-tab="postjob">Post Job</span>
+    <span class="tab" data-tab="myjobs">My Jobs</span>
+    <span class="tab" data-tab="apps">Applications</span>
+    <span class="tab" data-tab="apply">Apply</span>
+  </div>
+
+  <section id="company" style="display:none">
+    <div class="card"><h2>Your Companies</h2><div id="companyList"></div></div>
+    <div class="card"><h3>Create / Update</h3>
+      <label>Name</label><input id="c_name"/>
+      <label>Website</label><input id="c_website" placeholder="https://example.com"/>
+      <button id="saveCompany" class="btn">Save Company</button>
+    </div>
+  </section>
+
+  <section id="postjob" style="display:none">
+    <div class="card"><h2>Post a Job</h2>
+      <label>Company</label><select id="j_company"></select>
+      <label>Title</label><input id="j_title"/>
+      <label>Description</label><textarea id="j_desc" rows="5"></textarea>
+      <div class="grid">
+        <div><label>Location</label><input id="j_loc" placeholder="Remote (India)"/></div>
+        <div><label>Employment</label>
+          <select id="j_emp"><option>full_time</option><option>part_time</option><option>contract</option><option>internship</option></select>
+        </div>
+        <div><label>Salary Min</label><input id="j_smin" type="number"/></div>
+        <div><label>Salary Max</label><input id="j_smax" type="number"/></div>
+        <div><label>Currency</label><input id="j_curr" value="INR"/></div>
+        <div><label>Remote?</label><select id="j_remote"><option value="true">Yes</option><option value="false">No</option></select></div>
+      </div>
+      <button id="postJob" class="btn">Publish Job</button>
+    </div>
+  </section>
+
+  <section id="myjobs" style="display:none">
+    <div class="card"><h2>My Jobs</h2><div id="jobsList"></div></div>
+  </section>
+
+  <section id="apps" style="display:none">
+    <div class="card"><h2>Applications (for my jobs)</h2><div id="appsTable"></div></div>
+  </section>
+
+  <section id="apply" style="display:none">
+    <div class="card"><h2>Apply to Job</h2>
+      <p class="badge" id="applyJobId">No job selected</p>
+      <label>Resume (PDF)</label><input id="a_file" type="file" accept=".pdf,.doc,.docx,.txt"/>
+      <label>Resume URL (optional)</label><input id="a_resume" placeholder="https://..."/>
+      <label>Cover Letter</label><textarea id="a_cover" rows="6"></textarea>
+      <button id="applyBtn" class="btn">Submit Application</button>
+    </div>
+  </section>
+</div>
+
+<footer>© GrowIndia</footer>
+
 <script>
-const logoutBtn=document.getElementById('logoutBtn'); logoutBtn.onclick=()=>sbAuth.signOut()
-const signinBtn=document.getElementById('signinBtn'); signinBtn.onclick=async()=>{ const email=prompt("Enter email"); if(!email) return; try{ await sbAuth.sendMagicLink(email); alert("Check your inbox!"); }catch(e){ alert(e.message) } }
-const authGate=document.getElementById('authGate'), profile=document.getElementById('profile'), companySec=document.getElementById('company'), postjob=document.getElementById('postjob'), myjobs=document.getElementById('myjobs'), apps=document.getElementById('apps'), applyHere=document.getElementById('applyHere')
-const whoami=document.getElementById('whoami'), companyList=document.getElementById('companyList'), c_name=document.getElementById('c_name'), c_website=document.getElementById('c_website'), saveCompany=document.getElementById('saveCompany')
-const j_company=document.getElementById('j_company'), j_title=document.getElementById('j_title'), j_desc=document.getElementById('j_desc'), j_loc=document.getElementById('j_loc'), j_emp=document.getElementById('j_emp'), j_smin=document.getElementById('j_smin'), j_smax=document.getElementById('j_smax'), j_curr=document.getElementById('j_curr'), j_remote=document.getElementById('j_remote'), postJob=document.getElementById('postJob')
-const jobsList=document.getElementById('jobsList'), appsTable=document.getElementById('appsTable'), a_resume=document.getElementById('a_resume'), a_cover=document.getElementById('a_cover'), applyBtn=document.getElementById('applyBtn'), applyJobIdBadge=document.getElementById('applyJobId')
-function show(el, v){ el.style.display = v ? '' : 'none' }
-async function boot(){
-  const user = await sbAuth.getUser()
-  const params = new URLSearchParams(window.location.search); const applyJobId = params.get('apply')
-  if(!user){ show(authGate,true); show(profile,false); show(companySec,false); show(postjob,false); show(myjobs,false); show(apps,false); show(applyHere, !!applyJobId); if(applyJobId) applyJobIdBadge.textContent=applyJobId; return }
-  show(authGate,false); show(profile,true); whoami.textContent = `You are signed in as ${user.email}`
-  show(companySec,true); show(postjob,true); show(myjobs,true); show(apps,true)
-  await loadCompanies(user.id); await loadJobs(user.id); await loadApps()
-  show(applyHere, !!applyJobId); if(applyJobId) applyJobIdBadge.textContent=applyJobId
+const tabsEl=document.getElementById('tabs'); const tabBtns=[...document.querySelectorAll('.tabbar .tab')];
+const authGate=document.getElementById('authGate'); const logoutBtn=document.getElementById('logoutBtn');
+const companyList=document.getElementById('companyList'), c_name=document.getElementById('c_name'), c_website=document.getElementById('c_website'), saveCompany=document.getElementById('saveCompany');
+const j_company=document.getElementById('j_company'), j_title=document.getElementById('j_title'), j_desc=document.getElementById('j_desc'), j_loc=document.getElementById('j_loc'), j_emp=document.getElementById('j_emp'), j_smin=document.getElementById('j_smin'), j_smax=document.getElementById('j_smax'), j_curr=document.getElementById('j_curr'), j_remote=document.getElementById('j_remote'), postJob=document.getElementById('postJob');
+const jobsList=document.getElementById('jobsList'), appsTable=document.getElementById('appsTable');
+const applyJobIdBadge=document.getElementById('applyJobId'), a_file=document.getElementById('a_file'), a_resume=document.getElementById('a_resume'), a_cover=document.getElementById('a_cover'), applyBtn=document.getElementById('applyBtn');
+const signinBtn=document.getElementById('signinBtn'); signinBtn.onclick=async()=>{ const email=prompt("Enter email"); if(!email) return; try{ await sbAuth.sendMagicLink(email); alert("Check your inbox!"); }catch(e){ alert(e.message) } };
+logoutBtn.onclick=()=>sbAuth.signOut();
+
+function showTab(id){
+  ['company','postjob','myjobs','apps','apply'].forEach(k=>document.getElementById(k).style.display = (k===id?'':'none'));
+  tabBtns.forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
 }
+tabBtns.forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+async function boot(){
+  const user = await sbAuth.currentUser();
+  const params = new URLSearchParams(window.location.search);
+  const applyId=params.get('apply'); if(applyId){ applyJobIdBadge.textContent=applyId }
+  if(!user){ authGate.style.display=''; tabsEl.style.display='none'; return }
+  authGate.style.display='none'; tabsEl.style.display='flex';
+  await loadCompanies(user.id); await loadJobs(); await loadApps();
+  showTab(applyId?'apply':'company');
+}
+
 async function loadCompanies(ownerId){
-  const { data, error } = await sb.supabase.from('companies').select('id,name,website').eq('owner_id', ownerId).order('created_at',{ascending:false})
-  companyList.innerHTML=''; j_company.innerHTML=''
+  const { data, error } = await sb.supabase.from('companies').select('id,name,website').eq('owner_id', ownerId).order('created_at',{ascending:false});
+  companyList.innerHTML=''; j_company.innerHTML='';
   if(error){ companyList.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
   if(!data || !data.length){ companyList.innerHTML='<div class="card">No company yet. Create one below.</div>'; return }
-  data.forEach(c=>{ const div=document.createElement('div'); div.className='card'; div.innerHTML=`<strong>${c.name}</strong><br><small class="muted">${c.website||''}</small>`; companyList.appendChild(div); const opt=document.createElement('option'); opt.value=c.id; opt.textContent=c.name; j_company.appendChild(opt) })
+  data.forEach(c=>{
+    const wrap=document.createElement('div'); wrap.className='card';
+    wrap.innerHTML=`<strong>${c.name}</strong><br><small class="muted">${c.website||''}</small>`;
+    companyList.appendChild(wrap);
+    const opt=document.createElement('option'); opt.value=c.id; opt.textContent=c.name; j_company.appendChild(opt);
+  });
 }
+
 saveCompany.onclick=async()=>{
-  const user = await sbAuth.getUser(); if(!user) return alert('Sign in first'); if(!c_name.value) return alert('Company name required')
-  const payload = { id: crypto.randomUUID(), owner_id: user.id, name: c_name.value.trim(), website: c_website.value.trim()||null }
-  let { error } = await sb.supabase.from('companies').insert(payload); if(error){ alert(error.message); return }
-  c_name.value=''; c_website.value=''; await loadCompanies(user.id); alert('Saved.')
-}
+  const user = await sbAuth.currentUser(); if(!user) return alert('Sign in first');
+  if(!c_name.value) return alert('Company name required');
+  const payload = { id: crypto.randomUUID(), owner_id: user.id, name: c_name.value.trim(), website: c_website.value.trim()||null };
+  const { error } = await sb.supabase.from('companies').insert(payload);
+  if(error){ alert(error.message); return }
+  c_name.value=''; c_website.value=''; await loadCompanies(user.id); alert('Saved.');
+};
+
 postJob.onclick=async()=>{
-  const user = await sbAuth.getUser(); if(!user) return alert('Sign in first'); if(!j_company.value) return alert('Select a company'); if(!j_title.value || !j_desc.value) return alert('Title and Description required')
-  const payload = { company_id:j_company.value, title:j_title.value.trim(), description:j_desc.value.trim(), location:j_loc.value.trim()||null, employment:j_emp.value, salary_min:j_smin.value?Number(j_smin.value):null, salary_max:j_smax.value?Number(j_smax.value):null, currency:j_curr.value||'INR', is_remote:j_remote.value==='true' }
-  let { error } = await sb.supabase.from('jobs').insert(payload); if(error){ alert(error.message); return }
-  j_title.value=''; j_desc.value=''; await loadJobs(user.id); alert('Job posted.')
+  const user= await sbAuth.currentUser(); if(!user) return alert('Sign in first');
+  if(!j_company.value) return alert('Select a company');
+  if(!j_title.value || !j_desc.value) return alert('Title and Description required');
+  const payload = {
+    company_id:j_company.value, title:j_title.value.trim(), description:j_desc.value.trim(),
+    location:j_loc.value.trim()||null, employment:j_emp.value,
+    salary_min:j_smin.value?Number(j_smin.value):null, salary_max:j_smax.value?Number(j_smax.value):null,
+    currency:j_curr.value||'INR', is_remote:j_remote.value==='true'
+  };
+  const { error } = await sb.supabase.from('jobs').insert(payload);
+  if(error){ alert(error.message); return }
+  j_title.value=''; j_desc.value=''; await loadJobs(); showTab('myjobs'); alert('Job posted.');
+};
+
+async function loadJobs(){
+  const r = await sb.supabase.from('jobs').select('id,title,location,employment,currency,salary_min,salary_max,status,companies!inner(owner_id,name)').order('created_at',{ascending:false}).limit(100);
+  jobsList.innerHTML='';
+  if(r.error){ jobsList.innerHTML='<div class="card">Error: '+r.error.message+'</div>'; return }
+  const rows = (r.data||[]).map(j=>`<tr>
+    <td>${j.title}</td><td>${j.location||''}</td><td>${j.employment||''}</td>
+    <td>${j.currency||''} ${j.salary_min||''}-${j.salary_max||''}</td>
+    <td><span class="badge">${j.status}</span></td>
+    <td class="row">
+      <button class="btn warn" data-status="Closed" data-id="${j.id}">Close</button>
+      <button class="btn" data-status="Active" data-id="${j.id}">Activate</button>
+      <button class="btn bad" data-del="${j.id}">Delete</button>
+    </td>
+  </tr>`).join('');
+  jobsList.innerHTML = `<table class="table"><thead><tr><th>Title</th><th>Location</th><th>Employment</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+  jobsList.querySelectorAll('button[data-status]').forEach(b=>b.onclick=()=>updateJobStatus(b.dataset.id, b.dataset.status));
+  jobsList.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteJob(b.dataset.del));
 }
-async function loadJobs(ownerId){
-  const { data, error } = await sb.supabase.from('jobs').select('id,title,location,employment,currency,salary_min,salary_max,company_id,created_at,status').order('created_at',{ascending:false}).limit(50)
-  if(error){ jobsList.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
-  jobsList.innerHTML=''; data.forEach(j=>{ const div=document.createElement('div'); div.className='card'; div.innerHTML=`<strong>${j.title}</strong> <span class="badge">${j.status}</span><br><small class="muted">${j.location||'Location flexible'} • ${j.employment}</small><br><small class="muted">${j.currency||''} ${j.salary_min||''}-${j.salary_max||''}</small><br><div style="margin-top:8px;display:flex;gap:8px;"><button class="btn ghost" data-close="${j.id}">Close</button><button class="btn ghost" data-open="${j.id}">Open</button><button class="btn bad" data-delete="${j.id}" style="background:#ef4444">Delete</button></div>`; jobsList.appendChild(div); div.querySelector('[data-close]').onclick=()=>updateJobStatus(j.id,'Closed'); div.querySelector('[data-open]').onclick=()=>updateJobStatus(j.id,'Active'); div.querySelector('[data-delete]').onclick=()=>deleteJob(j.id) })
-}
-async function updateJobStatus(id,status){ const { error } = await sb.supabase.from('jobs').update({status}).eq('id',id); if(error){ alert(error.message); return } await loadJobs((await sbAuth.getUser()).id) }
-async function deleteJob(id){ if(!confirm('Delete this job?')) return; const { error } = await sb.supabase.from('jobs').delete().eq('id',id); if(error){ alert(error.message); return } await loadJobs((await sbAuth.getUser()).id) }
+
+async function updateJobStatus(id,status){ const { error } = await sb.supabase.from('jobs').update({status}).eq('id', id); if(error) return alert(error.message); await loadJobs(); }
+async function deleteJob(id){ if(!confirm('Delete this job?')) return; const { error } = await sb.supabase.from('jobs').delete().eq('id', id); if(error) return alert(error.message); await loadJobs(); }
+
 async function loadApps(){
-  let { data, error } = await sb.supabase.from('v_employer_applications').select('*').order('applied_at',{ascending:false}).limit(100)
+  let { data, error } = await sb.supabase.from('v_employer_applications').select('*').order('applied_at',{ascending:false}).limit(200);
   if(error){ appsTable.innerHTML='<div class="card">No view or error: '+error.message+'</div>'; return }
   if(!data || !data.length){ appsTable.innerHTML='<div class="card">No applications yet.</div>'; return }
-  const rows = data.map(r=>`<tr><td>${r.applied_at?.slice(0,10)}</td><td>${r.applicant_name}<br><small class="muted">${r.applicant_email}</small></td><td>${r.company_name}</td><td>${r.job_title}</td><td><span class="badge">${r.application_status}</span></td><td><a href="${r.resume_url||'#'}" target="_blank">Resume</a></td></tr>`).join('')
-  appsTable.innerHTML = '<table><thead><tr><th>Date</th><th>Applicant</th><th>Company</th><th>Job</th><th>Status</th><th>Resume</th></tr></thead><tbody>'+rows+'</tbody></table>'
+  const rows = data.map(r=>`<tr>
+    <td>${r.applied_at?.slice(0,10)}</td>
+    <td>${r.applicant_name}<br><small class="muted">${r.applicant_email}</small></td>
+    <td>${r.company_name}</td><td>${r.job_title}</td>
+    <td><span class="badge">${r.application_status}</span></td>
+    <td>${r.resume_url?`<a href="${r.resume_url}" target="_blank">Resume</a>`:''}</td>
+  </tr>`).join('');
+  appsTable.innerHTML = '<table class="table"><thead><tr><th>Date</th><th>Applicant</th><th>Company</th><th>Job</th><th>Status</th><th>Resume</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
+
 applyBtn.onclick=async()=>{
-  const params=new URLSearchParams(window.location.search); const jobId=params.get('apply'); const user = await sbAuth.getUser()
-  if(!user) return alert('Sign in first'); if(!jobId) return alert('Missing job id')
-  const payload={ job_id:jobId, applicant_id:user.id, cover_letter:a_cover.value||null, resume_url:a_resume.value||null }
-  const { error } = await sb.supabase.from('applications').insert(payload); if(error){ alert(error.message); return } a_cover.value=''; a_resume.value=''; alert('Application submitted.')
-}
-boot()
-</script></body></html>
+  const params=new URLSearchParams(window.location.search); const jobId=params.get('apply');
+  const user = await sbAuth.currentUser(); if(!user) return alert('Sign in first');
+  if(!jobId) return alert('Missing job id');
+  let resume = a_resume.value?.trim() || null;
+  if(a_file.files && a_file.files[0]){
+    try{ resume = await sbUploads.uploadResume(a_file.files[0], user.id) }
+    catch(e){ alert('Upload failed: '+e.message); return }
+  }
+  const payload={ job_id:jobId, applicant_id:user.id, cover_letter:a_cover.value||null, resume_url:resume };
+  const { error } = await sb.supabase.from('applications').insert(payload);
+  if(error){ alert(error.message); return }
+  a_cover.value=''; a_resume.value=''; a_file.value=''; alert('Application submitted.');
+};
+
+boot();
+</script>
+</body>
+</html>
