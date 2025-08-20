@@ -346,4 +346,206 @@
   }
   function fillSelect(sel, arr){
     sel.innerHTML='';
-    (arr||[]).forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.
+    (arr||[]).forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o) });
+  }
+  newJobBtn.onclick=()=>{ resetJobForm(); jobFormTitle.textContent='Post Job'; jobFormCard.style.display='' }
+  cancelJob.onclick=()=>{ jobFormCard.style.display='none' }
+
+  async function loadJobs(){
+    const { data, error } = await sb.supabase
+      .from('jobs')
+      .select('id,title,location,employment,currency,salary_min,salary_max,status,industry,job_type,level,created_at,companies!inner(id,name,owner_id)')
+      .eq('companies.owner_id', USER.id)
+      .order('created_at',{ascending:false});
+    if(error){ jobsTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
+    renderJobs(data||[]);
+  }
+
+  function renderJobs(rows){
+    if(!rows.length){ jobsTable.innerHTML='<div class="card">No jobs yet. Click “Post Job”.</div>'; return }
+    const html = rows.map(j=>`
+      <tr>
+        <td><input type="checkbox" class="jobChk" value="${j.id}"/></td>
+        <td><strong>${j.title}</strong><br><small class="muted">${j.companies?.name||''}</small></td>
+        <td>${j.industry||''}</td>
+        <td>${j.job_type||''}</td>
+        <td>${j.level||''}</td>
+        <td>${j.location||''}</td>
+        <td>${j.employment||''}</td>
+        <td>${j.currency||''} ${j.salary_min||''}${j.salary_max?(' - '+j.salary_max):''}</td>
+        <td><span class="badge">${j.status}</span></td>
+        <td class="table-actions">
+          <button class="btn" data-edit="${j.id}">Edit</button>
+          <button class="btn bad" data-del="${j.id}">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+    jobsTable.innerHTML = `<table class="table">
+      <thead>
+        <tr><th><input type="checkbox" id="jobChkAll"/></th><th>Job</th><th>Industry</th><th>Type</th><th>Level</th><th>Location</th><th>Employment</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
+      </thead><tbody>${html}</tbody></table>`;
+    document.getElementById('jobChkAll').onclick = (e)=>{
+      document.querySelectorAll('.jobChk').forEach(ch=>ch.checked=e.target.checked);
+    };
+    jobsTable.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editJob(b.dataset.edit));
+    jobsTable.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteJob(b.dataset.del));
+  }
+
+  async function editJob(id){
+    const { data, error } = await sb.supabase.from('jobs').select('*').eq('id', id).single();
+    if(error){ toast(error.message); return }
+    resetJobForm();
+    j_id.value=data.id; j_company.value=data.company_id;
+    j_title.value=data.title||''; j_desc.value=data.description||'';
+    ensureOption(j_industry, data.industry); j_industry.value=data.industry||'';
+    ensureOption(j_jobtype, data.job_type); j_jobtype.value=data.job_type||'';
+    ensureOption(j_level, data.level); j_level.value=data.level||'';
+    ensureOption(j_location, data.location); j_location.value=data.location||'';
+    j_emp.value=data.employment||'full_time'; j_smin.value=data.salary_min||''; j_smax.value=data.salary_max||''; j_curr.value=data.currency||'INR'; j_remote.value=String(!!data.is_remote); j_status.value=data.status||'Active';
+    jobFormTitle.textContent='Edit Job'; jobFormCard.style.display='';
+  }
+  function ensureOption(sel, val){ if(val && ![...sel.options].some(o=>o.value===val)){ const o=document.createElement('option'); o.value=val; o.textContent=val; sel.appendChild(o) } }
+
+  async function deleteJob(id){
+    if(!confirm('Delete this job?')) return;
+    const { error } = await sb.supabase.from('jobs').delete().eq('id', id);
+    if(error) return toast(error.message);
+    await loadJobs();
+  }
+
+  async function setJobStatusBulk(ids, status){
+    if(!ids.length) return toast('Select at least one job.');
+    const { error } = await sb.supabase.from('jobs').update({ status }).in('id', ids);
+    if(error) return toast(error.message);
+    await loadJobs();
+  }
+  document.getElementById('bulkActive').onclick = ()=> setJobStatusBulk(selectedJobIds(), 'Active');
+  document.getElementById('bulkDraft').onclick  = ()=> setJobStatusBulk(selectedJobIds(), 'Draft');
+  document.getElementById('bulkClosed').onclick = ()=> setJobStatusBulk(selectedJobIds(), 'Closed');
+  document.getElementById('bulkDelete').onclick = async()=>{
+    const ids = selectedJobIds(); if(!ids.length) return toast('Select at least one job.');
+    if(!confirm('Delete selected jobs?')) return;
+    const { error } = await sb.supabase.from('jobs').delete().in('id', ids);
+    if(error) return toast(error.message);
+    await loadJobs();
+  };
+  function selectedJobIds(){ return [...document.querySelectorAll('.jobChk:checked')].map(ch=>ch.value) }
+
+  saveJob.onclick=async()=>{
+    if(!j_title.value.trim() || !j_desc.value.trim()) return toast('Title and Description are required.');
+    if(!j_company.value) return toast('Select a company.');
+    const payload = {
+      company_id:j_company.value, title:j_title.value.trim(), description:j_desc.value.trim(),
+      location:j_location.value||null, employment:j_emp.value,
+      salary_min:num(j_smin.value), salary_max:num(j_smax.value), currency:j_curr.value||'INR',
+      is_remote: truthy(j_remote.value), status: j_status.value,
+      industry:j_industry.value||null, job_type:j_jobtype.value||null, level:j_level.value||null
+    };
+    if(j_id.value){
+      const { error } = await sb.supabase.from('jobs').update(payload).eq('id', j_id.value);
+      if(error) return toast(error.message);
+    }else{
+      const body={ id: crypto.randomUUID(), ...payload };
+      const { error } = await sb.supabase.from('jobs').insert(body);
+      if(error) return toast(error.message);
+    }
+    jobFormCard.style.display='none';
+    await loadJobs();
+    toast('Saved.');
+  }
+
+  // -------- Applications (with bulk status) --------
+  async function loadApps(){
+    let { data, error } = await sb.supabase.from('v_employer_applications').select('*').order('applied_at',{ascending:false}).limit(500);
+    if(error){ appsTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
+    renderApps(data||[]);
+    // Resolve signed URLs asynchronously after render
+    document.querySelectorAll('a[data-resume]').forEach(async a=>{
+      const signed = await sbUploads.signedUrlMaybe(a.dataset.resume);
+      if(signed){ a.href=signed; a.textContent='Resume'; a.target='_blank' }
+      else{ a.textContent='-' }
+    });
+  }
+
+  function renderApps(rows){
+    if(!rows.length){ appsTable.innerHTML='<div class="card">No applications yet.</div>'; return }
+    const html = rows.map(r=>`
+      <tr>
+        <td><input type="checkbox" class="appChk" value="${r.application_id}"/></td>
+        <td>${(r.applied_at||'').slice(0,10)}</td>
+        <td>${r.applicant_name||''}<br><small class="muted">${r.applicant_email||''}</small></td>
+        <td>${r.company_name||''}</td>
+        <td>${r.job_title||''}</td>
+        <td><span class="badge">${r.application_status}</span></td>
+        <td>${r.resume_url?`<a href="#" data-resume="${r.resume_url}">loading…</a>`:'-'}</td>
+      </tr>`).join('');
+    appsTable.innerHTML = `<table class="table">
+      <thead>
+        <tr><th><input type="checkbox" id="appChkAll"/></th><th>Date</th><th>Applicant</th><th>Company</th><th>Job</th><th>Status</th><th>Resume</th></tr>
+      </thead><tbody>${html}</tbody></table>`;
+    document.getElementById('appChkAll').onclick = (e)=>{
+      document.querySelectorAll('.appChk').forEach(ch=>ch.checked=e.target.checked);
+    };
+  }
+
+  applyBulkAppStatus.onclick = async()=>{
+    const ids = [...document.querySelectorAll('.appChk:checked')].map(ch=>ch.value);
+    if(!ids.length) return toast('Select applications first.');
+    const status = bulkAppStatus.value;
+    const { error } = await sb.supabase.from('applications').update({ status }).in('id', ids);
+    if(error) return toast(error.message);
+    await loadApps();
+    toast('Updated.');
+  };
+
+  // -------- Lookups manager --------
+  function renderLookupCard(el, title, table, items){
+    el.innerHTML = `
+      <h2>${title}</h2>
+      <div class="row">
+        <input id="${table}New" placeholder="Add new ${title.slice(0,-1)}"/>
+        <button class="btn" id="${table}Add">Add</button>
+      </div>
+      <div style="margin-top:10px">
+        ${items.length?`<table class="table"><thead><tr><th>Name</th><th>Actions</th></tr></thead><tbody>
+          ${items.map(n=>`<tr><td>${n}</td><td><button class="btn bad" data-del="${n}">Delete</button></td></tr>`).join('')}
+        </tbody></table>`:'<div class="card">No items yet.</div>'}
+      </div>`;
+    el.querySelector(`#${table}Add`).onclick = async()=>{
+      const v = el.querySelector(`#${table}New`).value.trim();
+      if(!v) return;
+      const { error } = await sb.supabase.from(table).insert({ name:v });
+      if(error) return toast(error.message);
+      LOOKUPS = await sbData.getLookups();
+      renderLookups(); // re-render all
+    };
+    el.querySelectorAll('button[data-del]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('Delete this value?')) return;
+      const { error } = await sb.supabase.from(table).delete().eq('name', b.dataset.del);
+      if(error) return toast(error.message);
+      LOOKUPS = await sbData.getLookups();
+      renderLookups();
+    });
+  }
+
+  function renderLookups(){
+    renderLookupCard(lkIndustries, 'Industries', 'lookup_industries', LOOKUPS.industries);
+    renderLookupCard(lkJobTypes,   'Job Types',  'lookup_job_types', LOOKUPS.jobTypes);
+    renderLookupCard(lkLevels,     'Seniority Levels', 'lookup_levels', LOOKUPS.levels);
+    renderLookupCard(lkLocations,  'Locations',  'lookup_locations', LOOKUPS.locations);
+    // refresh job form selects if open
+    if(jobFormCard.style.display!=='none'){
+      fillSelect(j_industry, LOOKUPS.industries); ensureOption(j_industry, j_industry.value);
+      fillSelect(j_jobtype, LOOKUPS.jobTypes);     ensureOption(j_jobtype, j_jobtype.value);
+      fillSelect(j_level, LOOKUPS.levels);         ensureOption(j_level, j_level.value);
+      fillSelect(j_location, LOOKUPS.locations);   ensureOption(j_location, j_location.value);
+    }
+  }
+
+  // go!
+  boot();
+</script>
+
+</body>
+</html>
+
