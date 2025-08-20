@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>GrowIndia Jobs</title>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script><script src="app.js"></script></head>
+<body>
+<nav><div class="brand">GrowIndia Jobs</div><div>
+<a class="btn ghost" href="dashboard.html">Dashboard</a>
+<button id="loginBtn" class="btn">Login / Sign up</button>
+<button id="logoutBtn" class="btn ghost" style="display:none">Logout</button>
+</div></nav>
+<div class="container">
+<h1>Open Positions</h1>
+<div class="card"><label>Search</label><input id="q" placeholder="Title or company"/></div>
+<div id="jobs" class="grid"></div>
+</div><footer>© GrowIndia</footer>
+<script>
+const jobsEl=document.getElementById('jobs'), qEl=document.getElementById('q')
+const loginBtn=document.getElementById('loginBtn'), logoutBtn=document.getElementById('logoutBtn')
+logoutBtn.onclick=()=>sbAuth.signOut()
+loginBtn.onclick=async()=>{ const email=prompt("Enter your email"); if(!email) return; try{ await sbAuth.sendMagicLink(email); alert("Magic link sent!"); }catch(e){ alert(e.message) } }
+async function refreshAuthButtons(){ const u=await sbAuth.getUser(); loginBtn.style.display=u?'none':'inline-block'; logoutBtn.style.display=u?'inline-block':'none' }
+async function loadJobs(){
+  const term = qEl.value?.trim()
+  let { data, error } = await sb.supabase.from('v_job_public').select('*').order('created_at',{ascending:false}).limit(48)
+  if(error){ const r = await sb.supabase.from('jobs').select('*').order('created_at',{ascending:false}).limit(48); data=r.data; error=r.error }
+  if(error){ jobsEl.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
+  jobsEl.innerHTML=''
+  if(!data || !data.length){ jobsEl.innerHTML='<div class="card">No jobs yet.</div>'; return }
+  data.filter(j=>!term || (j.title && j.title.toLowerCase().includes(term.toLowerCase()))).forEach(r=>{
+    const c=document.createElement('div'); c.className='card'
+    c.innerHTML=`<h2>${r.title}</h2>
+      <div class="badge">${r.company_name||''}</div>
+      <p><small class="muted">${r.location||'Location flexible'} • ${(r.employment||'').replace('_',' ')} • ${r.currency||''} ${r.salary_min||''}-${r.salary_max||''}</small></p>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <a class="btn ghost" href="dashboard.html?apply=${r.id}">Apply</a>
+      </div>`
+    jobsEl.appendChild(c)
+  })
+}
+qEl.addEventListener('input', loadJobs); refreshAuthButtons(); loadJobs();
+</script>
+</body></html>
