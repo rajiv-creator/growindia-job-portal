@@ -1,0 +1,427 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GrowIndia — Admin</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <style>
+    /* Admin shell additions (kept local so you don't have to edit styles.css yet) */
+    .layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+    .side{background:#0f152a;border-right:1px solid var(--line);padding:16px;position:sticky;top:0;height:100vh}
+    .side h3{margin:0 0 12px 0}
+    .navlink{display:block;padding:10px 12px;border-radius:10px;margin-bottom:6px;border:1px solid transparent;color:var(--ink);cursor:pointer}
+    .navlink.active{background:#1d2548;border-color:#2b3a6a}
+    .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#0f152a;border-bottom:1px solid var(--line)}
+    .pill{padding:3px 8px;border-radius:999px;background:#1d2548;color:#cde1ff;font-size:12px}
+    .row.gap6{gap:6px}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:900px){ .layout{grid-template-columns:1fr} .side{position:static;height:auto} .two{grid-template-columns:1fr} }
+    .muted{color:var(--muted)}
+    .table-actions button{margin-right:6px}
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">GrowIndia — Admin</div>
+  <div class="row gap6">
+    <a class="btn ghost" href="index.html">Public Jobs</a>
+    <button id="logoutBtn" class="btn ghost">Logout</button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="side">
+    <h3>Manage</h3>
+    <a class="navlink active" data-section="companies">Companies</a>
+    <a class="navlink" data-section="jobs">Jobs</a>
+    <a class="navlink" data-section="applications">Applications</a>
+    <a class="navlink" data-section="settings">Settings</a>
+    <hr style="border-color:var(--line);margin:12px 0"/>
+    <div id="me" class="muted" style="font-size:12px"></div>
+  </aside>
+
+  <main class="container">
+
+    <!-- COMPANIES -->
+    <section id="companies">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h1>Companies</h1>
+          <button id="newCompanyBtn" class="btn">New Company</button>
+        </div>
+
+        <div id="companyList"></div>
+      </div>
+
+      <div class="card" id="companyFormCard" style="display:none">
+        <h2 id="companyFormTitle">Create Company</h2>
+        <input type="hidden" id="c_id" />
+        <label>Name</label>
+        <input id="c_name" placeholder="Acme Inc"/>
+        <label>Website</label>
+        <input id="c_website" placeholder="https://example.com"/>
+        <div class="row">
+          <button id="saveCompany" class="btn">Save</button>
+          <button id="cancelCompany" class="btn ghost">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- JOBS -->
+    <section id="jobs" style="display:none">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h1>Jobs</h1>
+          <button id="newJobBtn" class="btn">Post Job</button>
+        </div>
+        <div id="jobsTable"></div>
+      </div>
+
+      <div class="card" id="jobFormCard" style="display:none">
+        <h2 id="jobFormTitle">Post Job</h2>
+        <input type="hidden" id="j_id" />
+        <label>Company</label>
+        <select id="j_company"></select>
+
+        <label>Title</label>
+        <input id="j_title" placeholder="Senior React Developer"/>
+
+        <label>Description</label>
+        <textarea id="j_desc" rows="6" placeholder="Role, responsibilities, requirements..."></textarea>
+
+        <div class="two">
+          <div>
+            <label>Location</label>
+            <input id="j_loc" list="loc_list" placeholder="Remote (India)"/>
+            <datalist id="loc_list">
+              <option>Remote</option>
+              <option>Remote (India)</option>
+              <option>New Delhi</option>
+              <option>Mumbai</option>
+              <option>Bengaluru</option>
+              <option>Hyderabad</option>
+              <option>Pune</option>
+              <option>Chennai</option>
+            </datalist>
+          </div>
+          <div>
+            <label>Employment</label>
+            <select id="j_emp">
+              <option>full_time</option>
+              <option>part_time</option>
+              <option>contract</option>
+              <option>internship</option>
+            </select>
+          </div>
+          <div>
+            <label>Salary Min</label>
+            <input id="j_smin" type="number" placeholder="500000"/>
+          </div>
+          <div>
+            <label>Salary Max</label>
+            <input id="j_smax" type="number" placeholder="1500000"/>
+          </div>
+          <div>
+            <label>Currency</label>
+            <select id="j_curr">
+              <option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option>
+            </select>
+          </div>
+          <div>
+            <label>Remote?</label>
+            <select id="j_remote"><option value="true">Yes</option><option value="false">No</option></select>
+          </div>
+        </div>
+
+        <div class="two">
+          <div>
+            <label>Status</label>
+            <select id="j_status">
+              <option>Active</option>
+              <option>Draft</option>
+              <option>Closed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="saveJob" class="btn">Save</button>
+          <button id="cancelJob" class="btn ghost">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPLICATIONS -->
+    <section id="applications" style="display:none">
+      <div class="card">
+        <h1>Applications</h1>
+        <div id="appsTable"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" style="display:none">
+      <div class="card">
+        <h1>Settings</h1>
+        <p class="muted">More controls (lookups, members, branding) can be added here in the next milestone.</p>
+        <div class="row">
+          <a class="btn ghost" href="dashboard.html">Old Dashboard</a>
+          <a class="btn ghost" href="index.html">Public Jobs</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // --- small nav helper ---
+  document.querySelectorAll('.navlink').forEach(a=>{
+    a.onclick = () => {
+      document.querySelectorAll('.navlink').forEach(x=>x.classList.remove('active'));
+      a.classList.add('active');
+      const id=a.dataset.section;
+      ['companies','jobs','applications','settings'].forEach(s=>{
+        document.getElementById(s).style.display = (s===id?'':'none')
+      });
+    }
+  });
+
+  // --- auth / user ---
+  const meEl = document.getElementById('me');
+  document.getElementById('logoutBtn').onclick = () => sbAuth.signOut();
+
+  // --- DOM refs ---
+  const companyList = document.getElementById('companyList');
+  const newCompanyBtn = document.getElementById('newCompanyBtn');
+  const companyFormCard = document.getElementById('companyFormCard');
+  const companyFormTitle = document.getElementById('companyFormTitle');
+  const c_id=document.getElementById('c_id'), c_name=document.getElementById('c_name'), c_website=document.getElementById('c_website');
+  const saveCompany=document.getElementById('saveCompany'), cancelCompany=document.getElementById('cancelCompany');
+
+  const jobsTable=document.getElementById('jobsTable');
+  const newJobBtn=document.getElementById('newJobBtn');
+  const jobFormCard=document.getElementById('jobFormCard'), jobFormTitle=document.getElementById('jobFormTitle');
+  const j_id=document.getElementById('j_id'), j_company=document.getElementById('j_company'), j_title=document.getElementById('j_title'), j_desc=document.getElementById('j_desc'), j_loc=document.getElementById('j_loc'), j_emp=document.getElementById('j_emp'), j_smin=document.getElementById('j_smin'), j_smax=document.getElementById('j_smax'), j_curr=document.getElementById('j_curr'), j_remote=document.getElementById('j_remote'), j_status=document.getElementById('j_status');
+  const saveJob=document.getElementById('saveJob'), cancelJob=document.getElementById('cancelJob');
+
+  const appsTable=document.getElementById('appsTable');
+
+  let USER=null; let COMPANIES=[];
+
+  // Helpers
+  const currency = v => v || null;
+  const num      = v => v?Number(v):null;
+  const truthy   = v => v==='true';
+  function toast(msg){ alert(msg) }
+
+  // Load data
+  async function boot(){
+    USER = await sbAuth.currentUser();
+    if(!USER){ alert('Please login from the public page or dashboard first.'); window.location.href='index.html'; return }
+    meEl.innerHTML = `<div><span class="pill">Signed in</span> ${USER.email||USER.id}</div>`;
+    await loadCompanies(); await loadJobs(); await loadApps();
+  }
+
+  // --- Companies ---
+  function resetCompanyForm(){ c_id.value=''; c_name.value=''; c_website.value='' }
+  newCompanyBtn.onclick=()=>{ resetCompanyForm(); companyFormTitle.textContent='Create Company'; companyFormCard.style.display='' }
+  cancelCompany.onclick=()=>{ companyFormCard.style.display='none' }
+
+  async function loadCompanies(){
+    const { data, error } = await sb.supabase.from('companies').select('id,name,website,created_at').eq('owner_id', USER.id).order('created_at',{ascending:false});
+    if(error){ companyList.innerHTML = '<div class="card">Error: '+error.message+'</div>'; return }
+    COMPANIES = data||[];
+    renderCompanies(); fillCompanySelect();
+  }
+
+  function renderCompanies(){
+    if(!COMPANIES.length){ companyList.innerHTML='<div class="card">No companies yet. Click “New Company”.</div>'; return }
+    const rows = COMPANIES.map(c=>`
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.website || ''}</td>
+        <td>${(c.created_at||'').slice(0,10)}</td>
+        <td class="table-actions">
+          <button class="btn" data-edit="${c.id}">Edit</button>
+          <button class="btn bad" data-del="${c.id}">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+    companyList.innerHTML = `<table class="table"><thead><tr><th>Name</th><th>Website</th><th>Created</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+    companyList.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editCompany(b.dataset.edit));
+    companyList.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteCompany(b.dataset.del));
+  }
+
+  function fillCompanySelect(){
+    j_company.innerHTML = '';
+    COMPANIES.forEach(c=>{
+      const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; j_company.appendChild(o);
+    })
+  }
+
+  async function editCompany(id){
+    const c = COMPANIES.find(x=>x.id===id); if(!c) return
+    c_id.value = c.id; c_name.value=c.name; c_website.value=c.website||'';
+    companyFormTitle.textContent='Edit Company'; companyFormCard.style.display='';
+  }
+
+  async function deleteCompany(id){
+    if(!confirm('Delete this company? All its jobs will also be deleted.')) return;
+    const { error } = await sb.supabase.from('companies').delete().eq('id', id);
+    if(error){ toast(error.message); return }
+    await loadCompanies(); await loadJobs(); toast('Deleted.');
+  }
+
+  saveCompany.onclick=async()=>{
+    if(!c_name.value.trim()) return toast('Company name is required.');
+    const payload = { name: c_name.value.trim(), website: c_website.value.trim()||null, owner_id: USER.id };
+    if(c_id.value){ // update
+      const { error } = await sb.supabase.from('companies').update(payload).eq('id', c_id.value);
+      if(error) return toast(error.message);
+    } else { // insert
+      const body = { id: crypto.randomUUID(), ...payload };
+      const { error } = await sb.supabase.from('companies').insert(body);
+      if(error) return toast(error.message);
+    }
+    companyFormCard.style.display='none'; resetCompanyForm();
+    await loadCompanies(); toast('Saved.');
+  }
+
+  // --- Jobs ---
+  function resetJobForm(){
+    j_id.value=''; if(COMPANIES[0]) j_company.value = COMPANIES[0].id;
+    j_title.value=''; j_desc.value=''; j_loc.value=''; j_emp.value='full_time'; j_smin.value=''; j_smax.value=''; j_curr.value='INR'; j_remote.value='true'; j_status.value='Active';
+  }
+  newJobBtn.onclick=()=>{ resetJobForm(); jobFormTitle.textContent='Post Job'; jobFormCard.style.display='' }
+  cancelJob.onclick=()=>{ jobFormCard.style.display='none' }
+
+  async function loadJobs(){
+    // Get only jobs for my companies
+    const { data, error } = await sb.supabase
+      .from('jobs')
+      .select('id,title,location,employment,currency,salary_min,salary_max,status,created_at,companies!inner(id,name,owner_id)')
+      .eq('companies.owner_id', USER.id)
+      .order('created_at',{ascending:false});
+    if(error){ jobsTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
+    renderJobs(data||[]);
+  }
+
+  function renderJobs(rows){
+    if(!rows.length){ jobsTable.innerHTML='<div class="card">No jobs yet. Click “Post Job”.</div>'; return }
+    const html = rows.map(j=>`
+      <tr>
+        <td><strong>${j.title}</strong><br><small class="muted">${j.companies?.name||''}</small></td>
+        <td>${j.location||''}</td>
+        <td>${j.employment||''}</td>
+        <td>${j.currency||''} ${j.salary_min||''}${j.salary_max?(' - '+j.salary_max):''}</td>
+        <td><span class="badge">${j.status}</span></td>
+        <td class="table-actions">
+          <button class="btn" data-edit="${j.id}">Edit</button>
+          <button class="btn warn" data-status="Active" data-id="${j.id}">Activate</button>
+          <button class="btn warn" data-status="Draft" data-id="${j.id}">Draft</button>
+          <button class="btn warn" data-status="Closed" data-id="${j.id}">Close</button>
+          <button class="btn bad" data-del="${j.id}">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+    jobsTable.innerHTML = `<table class="table"><thead>
+      <tr><th>Job</th><th>Location</th><th>Employment</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
+      </thead><tbody>${html}</tbody></table>`;
+    jobsTable.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>editJob(b.dataset.edit));
+    jobsTable.querySelectorAll('button[data-status]').forEach(b=>b.onclick=()=>setJobStatus(b.dataset.id,b.dataset.status));
+    jobsTable.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteJob(b.dataset.del));
+  }
+
+  async function editJob(id){
+    const { data, error } = await sb.supabase.from('jobs').select('*').eq('id', id).single();
+    if(error){ toast(error.message); return }
+    j_id.value=data.id; j_company.value=data.company_id; j_title.value=data.title||''; j_desc.value=data.description||''; j_loc.value=data.location||''; j_emp.value=data.employment||'full_time'; j_smin.value=data.salary_min||''; j_smax.value=data.salary_max||''; j_curr.value=data.currency||'INR'; j_remote.value=String(!!data.is_remote); j_status.value=data.status||'Active';
+    jobFormTitle.textContent='Edit Job'; jobFormCard.style.display='';
+  }
+
+  async function setJobStatus(id,status){
+    const { error } = await sb.supabase.from('jobs').update({ status }).eq('id', id);
+    if(error) return toast(error.message);
+    await loadJobs();
+  }
+
+  async function deleteJob(id){
+    if(!confirm('Delete this job?')) return;
+    const { error } = await sb.supabase.from('jobs').delete().eq('id', id);
+    if(error) return toast(error.message);
+    await loadJobs();
+  }
+
+  saveJob.onclick=async()=>{
+    if(!j_title.value.trim() || !j_desc.value.trim()) return toast('Title and Description are required.');
+    if(!j_company.value) return toast('Select a company.');
+
+    const payload = {
+      company_id:j_company.value, title:j_title.value.trim(), description:j_desc.value.trim(),
+      location:j_loc.value.trim()||null, employment:j_emp.value,
+      salary_min:num(j_smin.value), salary_max:num(j_smax.value), currency:currency(j_curr.value),
+      is_remote: truthy(j_remote.value), status: j_status.value
+    };
+
+    if(j_id.value){
+      const { error } = await sb.supabase.from('jobs').update(payload).eq('id', j_id.value);
+      if(error) return toast(error.message);
+    }else{
+      const body={ id: crypto.randomUUID(), ...payload };
+      const { error } = await sb.supabase.from('jobs').insert(body);
+      if(error) return toast(error.message);
+    }
+    jobFormCard.style.display='none';
+    await loadJobs();
+    toast('Saved.');
+  }
+
+  // --- Applications ---
+  async function loadApps(){
+    // The view should already restrict rows to the current employer via RLS
+    let { data, error } = await sb.supabase.from('v_employer_applications').select('*').order('applied_at',{ascending:false}).limit(300);
+    if(error){ appsTable.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
+    renderApps(data||[]);
+  }
+
+  function renderApps(rows){
+    if(!rows.length){ appsTable.innerHTML='<div class="card">No applications yet.</div>'; return }
+    const statusOpts = ['pending','reviewed','shortlisted','rejected','hired'];
+    const html = rows.map(r=>{
+      const opts = statusOpts.map(s=>`<option ${s===r.application_status?'selected':''}>${s}</option>`).join('');
+      const resume = r.resume_url ? `<a href="${r.resume_url}" target="_blank">Resume</a>` : '';
+      return `<tr>
+        <td>${(r.applied_at||'').slice(0,10)}</td>
+        <td>${r.applicant_name||''}<br><small class="muted">${r.applicant_email||''}</small></td>
+        <td>${r.company_name||''}</td>
+        <td>${r.job_title||''}</td>
+        <td>
+          <select data-app="${r.application_id}">${opts}</select>
+        </td>
+        <td>${resume}</td>
+      </tr>`;
+    }).join('');
+    appsTable.innerHTML = `<table class="table"><thead>
+      <tr><th>Date</th><th>Applicant</th><th>Company</th><th>Job</th><th>Status</th><th>Resume</th></tr>
+      </thead><tbody>${html}</tbody></table>`;
+    appsTable.querySelectorAll('select[data-app]').forEach(s=>s.onchange=()=>updateAppStatus(s.dataset.app, s.value));
+  }
+
+  async function updateAppStatus(id, status){
+    const { error } = await sb.supabase.from('applications').update({ status }).eq('id', id);
+    if(error) return toast(error.message);
+    toast('Updated.');
+  }
+
+  // init
+  boot();
+</script>
+
+</body>
+</html>
