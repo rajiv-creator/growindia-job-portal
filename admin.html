@@ -3,229 +3,159 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrowIndia Admin</title>
+  <title>GrowIndia — Admin</title>
   <style>
-    :root{--bg:#0f172a;--card:#0b1024;--muted:#9aa3b2;--text:#e5e7eb;--accent:#3b82f6;--good:#10b981;--bad:#ef4444}
-    html,body{margin:0;padding:0;background:#0b1220;color:#e6e8ea;font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
-    header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:16px 20px;background:#0f172a;position:sticky;top:0;z-index:10;border-bottom:1px solid #1f2937}
-    header h1{margin:0;font-size:18px}
-    header .muted{color:#9aa3b2}
-    button, .btn{background:#1f2937;border:1px solid #374151;color:#e5e7eb;border-radius:8px;padding:8px 12px;cursor:pointer}
-    button:hover,.btn:hover{border-color:#4b5563}
-    main{max-width:1200px;margin:24px auto;padding:0 16px}
-
-    .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
-    .card{background:#0b1024;border:1px solid #1f2937;border-radius:12px;padding:14px}
-    .card h4{margin:0 0 6px 0;color:#9aa3b2;font-weight:500}
-    .card .num{font-size:26px;font-weight:700}
-
-    section{margin:28px 0}
-    section h2{margin:0 0 10px 0;font-size:18px}
-    table{width:100%;border-collapse:collapse;background:#0b1024;border:1px solid #1f2937;border-radius:12px;overflow:hidden}
-    th,td{padding:10px 12px;border-top:1px solid #1f2937}
-    thead th{background:#0f172a;font-weight:600}
-    tbody tr:hover{background:#0f152c}
-    em{color:#9aa3b2}
-
-    .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #334155;background:#0e162b}
-    .tag.good{color:#10b981;border-color:#195b45;background:rgba(16,185,129,.08)}
-    .tag.warn{color:#f59e0b;border-color:#5b4b19;background:rgba(245,158,11,.08)}
-    .tag.bad{color:#ef4444;border-color:#6f1a1a;background:rgba(239,68,68,.08)}
-    .small{font-size:12px;color:#9aa3b2}
-    .row{display:flex;gap:10px;align-items:center}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:0;padding:24px;background:#f6f7fb;color:#111}
+    h1{margin:0 0 8px}
+    .muted{color:#666;margin:0 0 24px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .card h2{font-size:16px;margin:0;padding:12px 16px;border-bottom:1px solid #eee}
+    .pad{padding:12px 16px}
+    table{width:100%;border-collapse:collapse}
+    th,td{font-size:14px;padding:8px 10px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+    th{background:#fafafa}
+    .count-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
+    .pill{display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px}
+    .pill .label{font-size:12px;color:#666}
+    .pill .num{font-size:20px;font-weight:600}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .link{color:#2563eb;text-decoration:none}
+    .link:hover{text-decoration:underline}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}.count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>
 </head>
 <body>
-  <!-- Load your Supabase keys -->
-  <script src="/config.js"></script>
-  <!-- Supabase JS v2 -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-
-  <header>
-    <h1>GrowIndia Admin</h1>
-    <div class="row">
-      <span id="whoami" class="muted">Checking session…</span>
-      <button id="btnLogout">Logout</button>
+  <div class="toolbar">
+    <div>
+      <h1>Admin</h1>
+      <p class="muted">Private reports & raw tables (read-only)</p>
     </div>
-  </header>
+    <div><a class="link" href="/">← Back to site</a></div>
+  </div>
 
-  <main>
-    <!-- COUNTS (PLACEHOLDERS) -->
-    <section>
-      <div class="row" style="justify-content:space-between;margin-bottom:8px">
-        <h2>Overview</h2>
-        <button id="btnRefresh">Refresh</button>
-      </div>
-      <div class="cards">
-        <div class="card"><h4>Total Jobs</h4><div class="num" id="countTotalJobs">–</div></div>
-        <div class="card"><h4>Active Jobs</h4><div class="num" id="countActiveJobs">–</div></div>
-        <div class="card"><h4>Closed Jobs</h4><div class="num" id="countClosedJobs">–</div></div>
-        <div class="card"><h4>Featured Jobs</h4><div class="num" id="countFeaturedJobs">–</div></div>
-      </div>
-      <div class="cards">
-        <div class="card"><h4>Total Companies</h4><div class="num" id="countCompanies">–</div></div>
-        <div class="card"><h4>Total Applications</h4><div class="num" id="countApps">–</div></div>
-        <div class="card"><h4>Pending Apps</h4><div class="num" id="countAppsPending">–</div></div>
-        <div class="card"><h4>Reviewed Apps</h4><div class="num" id="countAppsReviewed">–</div></div>
-      </div>
-    </section>
+  <!-- Quick counts -->
+  <div class="count-grid" id="counts">
+    <div class="pill"><div class="label">Total jobs</div>        <div class="num" id="c_total_jobs">–</div></div>
+    <div class="pill"><div class="label">Active jobs</div>       <div class="num" id="c_active_jobs">–</div></div>
+    <div class="pill"><div class="label">Closed jobs</div>       <div class="num" id="c_closed_jobs">–</div></div>
+    <div class="pill"><div class="label">Featured jobs</div>     <div class="num" id="c_featured_jobs">–</div></div>
+    <div class="pill"><div class="label">Total companies</div>   <div class="num" id="c_total_companies">–</div></div>
+    <div class="pill"><div class="label">Total applications</div><div class="num" id="c_total_apps">–</div></div>
+    <div class="pill"><div class="label">Pending apps</div>      <div class="num" id="c_pending_apps">–</div></div>
+    <div class="pill"><div class="label">Reviewed apps</div>     <div class="num" id="c_reviewed_apps">–</div></div>
+    <div class="pill"><div class="label">Shortlisted apps</div>  <div class="num" id="c_shortlisted_apps">–</div></div>
+    <div class="pill"><div class="label">Hired apps</div>        <div class="num" id="c_hired_apps">–</div></div>
+  </div>
 
-    <!-- TABLES (PLACEHOLDERS) -->
-    <section>
+  <div class="grid">
+    <div class="card">
       <h2>Jobs</h2>
-      <table id="tblJobs"></table>
-    </section>
-
-    <section>
+      <div class="pad"><div id="tbl_jobs">Loading…</div></div>
+    </div>
+    <div class="card">
       <h2>Applications</h2>
-      <table id="tblApps"></table>
-    </section>
-
-    <section>
-      <h2>Accounts</h2>
-      <table id="tblAccounts"></table>
-    </section>
-
-    <section>
+      <div class="pad"><div id="tbl_apps">Loading…</div></div>
+    </div>
+    <div class="card">
       <h2>Companies</h2>
-      <table id="tblCompanies"></table>
-    </section>
-  </main>
+      <div class="pad"><div id="tbl_companies">Loading…</div></div>
+    </div>
+    <div class="card">
+      <h2>Accounts</h2>
+      <div class="pad"><div id="tbl_profiles">Loading…</div></div>
+    </div>
+  </div>
 
+  <!-- Load scripts (keep this ORDER) -->
+  <script src="config.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+
+  <!-- Admin allow-list guard + loaders -->
   <script>
-    // ---------- INIT + ADMIN GUARD ----------
-    const supabase = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+    // 1) SAME allow-list here and in app.js
+    const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
 
-    // Only listed emails can view admin
-    const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com']; // add more if needed
+    // 2) Guard the page (kicks non-admins away)
+    supabase.auth.onAuthStateChange(async (_e, session) => {
+      const email = session?.user?.email;
+      if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
+    });
+    (async () => { // immediate check on first paint (no flicker)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !ADMIN_EMAILS.includes(user.email)) location.href = '/';
+    })();
 
-    supabase.auth.getSession().then(({ data }) => applyGuard(data.session));
-    supabase.auth.onAuthStateChange((_e, session) => applyGuard(session));
-
-    async function applyGuard(session) {
-      const whoami = document.getElementById('whoami');
-      if (!session) {
-        whoami.textContent = 'Not signed in';
-        window.location.href = '/'; // or '/login.html'
-        return;
-      }
-      const email = session.user.email;
-      whoami.textContent = email;
-      if (!ADMIN_EMAILS.includes(email)) {
-        alert('You are not allowed to access the admin.');
-        window.location.href = '/';
-        return;
-      }
-      // Once we pass guard, load everything
-      await refreshAll();
-    }
-
-    document.getElementById('btnLogout').onclick = async () => {
-      await supabase.auth.signOut();
-      window.location.href = '/';
-    };
-
-    document.getElementById('btnRefresh').onclick = refreshAll;
-
-    // ---------- SMALL TABLE RENDERER ----------
-    function renderTable(targetId, rows, columns) {
-      const el = document.getElementById(targetId);
-      if (!rows || rows.length === 0) { el.innerHTML = '<em>No data</em>'; return; }
+    // --- tiny helpers
+    function el(id){ return document.getElementById(id); }
+    function renderTable(targetId, rows, columns){
+      const host = el(targetId);
+      if (!rows || rows.length === 0){ host.innerHTML = '<em>No data</em>'; return; }
       const thead = '<thead><tr>' + columns.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead>';
-      const tbody = '<tbody>' + rows.map(r => {
-        return '<tr>' + columns.map(c => {
-          const cell = c.render ? c.render(r) : (r[c.key] ?? '');
-          return `<td>${cell}</td>`;
-        }).join('') + '</tr>';
-      }).join('') + '</tbody>';
-      el.innerHTML = thead + tbody;
+      const tbody = '<tbody>' + rows.map(r => (
+        '<tr>' + columns.map(c => `<td>${(r[c.key] ?? '')}</td>`).join('') + '</tr>'
+      )).join('') + '</tbody>';
+      host.innerHTML = `<table>${thead}${tbody}</table>`;
     }
 
-    // ---------- LOADERS (READ FROM VIEWS) ----------
-    async function loadCounts() {
-      const { data, error } = await supabase.from('v_admin_counts').select('*').limit(1).maybeSingle();
-      if (error) { console.error(error); return; }
-      const d = data || {};
-      setNum('countTotalJobs', d.total_jobs);
-      setNum('countActiveJobs', d.active_jobs);
-      setNum('countClosedJobs', d.closed_jobs);
-      setNum('countFeaturedJobs', d.featured_jobs);
-      setNum('countCompanies', d.total_companies);
-      setNum('countApps', d.total_apps);
-      setNum('countAppsPending', d.pending_apps);
-      setNum('countAppsReviewed', d.reviewed_apps);
-    }
-    function setNum(id, v){ document.getElementById(id).textContent = (v ?? 0); }
-
-    async function loadJobs() {
-      const { data, error } = await supabase
-        .from('v_admin_jobs_list')
-        .select('*')
-        .order('created_at', { ascending:false });
-      if (error) { console.error(error); return; }
-      renderTable('tblJobs', data, [
-        { key:'id', label:'ID' },
-        { key:'title', label:'Title' },
-        { key:'company_name', label:'Company' },
-        { key:'status', label:'Status', render: r => `<span class="tag ${r.status==='active'?'good':(r.status==='closed'?'bad':'')}">${r.status}</span>` },
-        { key:'featured', label:'Featured' },
-        { key:'employment', label:'Type' },
-        { key:'is_remote', label:'Remote' },
-        { key:'location', label:'Location' },
-        { key:'created_at', label:'Created', render:r => `<span class="small">${new Date(r.created_at).toLocaleString()}</span>` }
-      ]);
+    // --- fetch & render counts (from v_admin_counts)
+    async function loadCounts(){
+      const { data, error } = await supabase.from('v_admin_counts').select('*').single();
+      if (error){ console.error(error); return; }
+      for (const k of Object.keys(data)){
+        const target = document.getElementById('c_' + k);
+        if (target) target.textContent = data[k];
+      }
     }
 
-    async function loadApps() {
-      const { data, error } = await supabase
-        .from('v_admin_applications_list')
-        .select('*')
-        .order('created_at', { ascending:false });
-      if (error) { console.error(error); return; }
-      renderTable('tblApps', data, [
-        { key:'id', label:'ID' },
-        { key:'job_title', label:'Job' },
-        { key:'applicant_name', label:'Applicant' },
-        { key:'applicant_email', label:'Email' },
-        { key:'status', label:'Status', render: r => `<span class="tag">${r.status}</span>` },
-        { key:'created_at', label:'Applied', render:r => `<span class="small">${new Date(r.created_at).toLocaleString()}</span>` }
-      ]);
+    // --- fetch four tables (views)
+    async function loadTables(){
+      // Jobs
+      let r = await supabase.from('v_job_public')
+        .select('id,title,company_name,location,status,featured,created_at')
+        .order('created_at', { ascending:false }).limit(25);
+      if (!r.error){
+        renderTable('tbl_jobs', r.data, [
+          {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
+          {key:'location',label:'Location'}, {key:'status',label:'Status'},
+          {key:'featured',label:'Featured'}, {key:'created_at',label:'Created'}
+        ]);
+      }
+
+      // Applications
+      r = await supabase.from('applications')
+        .select('id,job_id,applicant_id,status,created_at').order('created_at',{ascending:false}).limit(25);
+      if (!r.error){
+        renderTable('tbl_apps', r.data, [
+          {key:'id',label:'ID'}, {key:'job_id',label:'Job'}, {key:'applicant_id',label:'Applicant'},
+          {key:'status',label:'Status'}, {key:'created_at',label:'Applied'}
+        ]);
+      }
+
+      // Companies
+      r = await supabase.from('companies')
+        .select('id,name,website,owner_id,created_at').order('created_at',{ascending:false}).limit(25);
+      if (!r.error){
+        renderTable('tbl_companies', r.data, [
+          {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
+          {key:'owner_id',label:'Owner'}, {key:'created_at',label:'Created'}
+        ]);
+      }
+
+      // Accounts (profiles)
+      r = await supabase.from('profiles')
+        .select('id,full_name,email,role,created_at').order('created_at',{ascending:false}).limit(25);
+      if (!r.error){
+        renderTable('tbl_profiles', r.data, [
+          {key:'id',label:'ID'}, {key:'full_name',label:'Name'}, {key:'email',label:'Email'},
+          {key:'role',label:'Role'}, {key:'created_at',label:'Created'}
+        ]);
+      }
     }
 
-    async function loadAccounts() {
-      const { data, error } = await supabase
-        .from('v_admin_accounts')
-        .select('*')
-        .order('created_at', { ascending:false });
-      if (error) { console.error(error); return; }
-      renderTable('tblAccounts', data, [
-        { key:'id', label:'ID' },
-        { key:'full_name', label:'Name' },
-        { key:'email', label:'Email' },
-        { key:'role', label:'Role' },
-        { key:'company_name', label:'Company' },
-        { key:'created_at', label:'Created', render:r => `<span class="small">${new Date(r.created_at).toLocaleDateString()}</span>` }
-      ]);
-    }
-
-    async function loadCompanies() {
-      const { data, error } = await supabase
-        .from('v_admin_companies')
-        .select('*')
-        .order('created_at', { ascending:false });
-      if (error) { console.error(error); return; }
-      renderTable('tblCompanies', data, [
-        { key:'id', label:'ID' },
-        { key:'name', label:'Name' },
-        { key:'website', label:'Website', render:r => r.website ? `<a class="btn" href="${r.website}" target="_blank">Open</a>` : '' },
-        { key:'jobs_count', label:'Jobs' },
-        { key:'created_at', label:'Created', render:r => `<span class="small">${new Date(r.created_at).toLocaleDateString()}</span>` }
-      ]);
-    }
-
-    async function refreshAll(){
-      await Promise.all([loadCounts(), loadJobs(), loadApps(), loadAccounts(), loadCompanies()]);
-    }
+    loadCounts();
+    loadTables();
   </script>
 </body>
 </html>
