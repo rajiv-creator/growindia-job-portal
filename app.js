@@ -1,4 +1,3 @@
-<script>
 // ==============================
 // Supabase init (uses config.js)
 // ==============================
@@ -12,15 +11,19 @@ const supabase = window.supabase.createClient(
 // ==============================
 const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
 
-// Small helpers
+// Helpers
 const $id = (id) => document.getElementById(id);
 
 async function refreshAuthButtons() {
-  const { data: { user } } = await supabase.auth.getUser();
-  const loginBtn  = $id('loginBtn');
-  const logoutBtn = $id('logoutBtn');
-  if (loginBtn)  loginBtn.hidden  = !!user;
-  if (logoutBtn) logoutBtn.hidden = !user;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const loginBtn  = $id('loginBtn');
+    const logoutBtn = $id('logoutBtn');
+    if (loginBtn)  loginBtn.hidden  = !!user;
+    if (logoutBtn) logoutBtn.hidden = !user;
+  } catch (e) {
+    console.error('refreshAuthButtons error', e);
+  }
 }
 
 // ==============================
@@ -30,26 +33,21 @@ async function refreshAuthButtons() {
 supabase.auth.onAuthStateChange(async (_evt, session) => {
   await refreshAuthButtons();
 
-  const user  = session?.user || null;
-  const here  = location.pathname.toLowerCase();
+  const user   = session?.user || null;
+  const here   = location.pathname.toLowerCase();
   const atHome = (here === '/' || here.endsWith('/index.html'));
 
-  // If logged out and on admin page, send to home
   if (!user) {
     if (here.endsWith('/admin.html')) location.href = '/';
-    return; // stay wherever else we are
+    return;
   }
 
   const isAdmin = ADMIN_EMAILS.includes(user.email);
   const target  = isAdmin ? '/admin.html' : '/dashboard.html';
 
-  // Only bounce from the home page; otherwise stay where the user is
-  if (atHome) {
-    if (here !== target) location.href = target;
-  } else if (here.endsWith('/admin.html') && !isAdmin) {
-    // Non-admin trying to open admin directly
-    location.href = '/';
-  }
+  // Only bounce from home; otherwise stay where the user is
+  if (atHome && here !== target) location.href = target;
+  if (here.endsWith('/admin.html') && !isAdmin) location.href = '/';
 });
 
 // ==============================
@@ -63,12 +61,12 @@ window.sbAuth = {
     return { error };
   },
 
-  // Prompt UI for simple login (your header Login button calls this)
+  // Simple prompt-based login
   async openLogin() {
     const email = (prompt('Email:') || '').trim();
     if (!email) return;
 
-    const pwd = prompt('Password (leave blank to receive a magic link):') || '';
+    const pwd = prompt('Password (leave blank for magic link):') || '';
     if (pwd) {
       const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
       if (error) alert(error.message);
@@ -83,7 +81,7 @@ window.sbAuth = {
     else alert('Check your email for the magic link.');
   },
 
-  // Optional: direct magic-link sender (kept for compatibility)
+  // Optional: direct magic-link sender
   async sendMagicLink(email) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -95,17 +93,17 @@ window.sbAuth = {
 
   async signOut() {
     await supabase.auth.signOut();
-    location.href = '/'; // take them back to home; no auto-redirect from home
+    location.href = '/';
   }
 };
 
-// Smart “Dashboard” helper: Admin → /admin.html, others → /dashboard.html
+// Smart “Dashboard” route chooser
 window.goToDashboard = async function () {
   const { data: { user } } = await supabase.auth.getUser();
   const isAdmin = !!user && ADMIN_EMAILS.includes(user.email);
   location.href = isAdmin ? '/admin.html' : '/dashboard.html';
 };
 
-// First paint: set button visibility right away
+// First paint: set header buttons correctly
 refreshAuthButtons();
-</script>
+console.log('app.js loaded; sbAuth available:', !!window.sbAuth);
