@@ -160,5 +160,22 @@
 <script src="config.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
+  <script>
+// Use the SAME email list as in app.js
+const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
+
+// Kick non-admins out if they reach /admin.html
+supabase.auth.onAuthStateChange((_e, session) => {
+  const email = session?.user?.email || '';
+  if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
+});
+
+// Also check immediately on page load (prevents flicker)
+(async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  const email = user?.email || '';
+  if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
+})();
+</script>
 </body>
 </html>
