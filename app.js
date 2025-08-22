@@ -1,59 +1,45 @@
-<!-- app.js (replace everything) -->
 <script>
-// ==========================
-// Supabase init (uses config.js)
-// ==========================
+// ============================
+// Supabase init (from config)
+// ============================
 const supabase = window.supabase.createClient(
   window.__SUPABASE_URL__,
   window.__SUPABASE_ANON_KEY__
 );
 
-// ==========================
-// Admin allow-list
-// put your admin emails here
-// ==========================
+// ============================
+// Admin allow-list (edit emails here)
+// Keep this SAME list in admin.html guard too.
+// ============================
 const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
 
-// =====================================================
-// Central redirect AFTER login (password OR magic link)
-// Sends admins -> /admin.html, others -> /dashboard.html
-// =====================================================
+// ==================================================
+// Central redirect after ANY login (password or magic)
+// - Admins -> /admin.html
+// - Everyone else -> /dashboard.html
+// This DOESN'T change your existing login code.
+// ==================================================
 supabase.auth.onAuthStateChange(async (_event, session) => {
-  const user = session?.user;
-  if (!user) return; // not signed in yet
+  const email = session?.user?.email || '';
+  const isAdmin = email && ADMIN_EMAILS.includes(email);
 
-  const isAdmin = ADMIN_EMAILS.includes(user.email);
-  const target  = isAdmin ? '/admin.html' : '/dashboard.html';
+  const target = isAdmin ? '/admin.html' : '/dashboard.html';
+  const here   = location.pathname.toLowerCase();
 
-  // Only redirect if we aren't already there
-  const here = location.pathname.toLowerCase();
   if (here !== target) location.href = target;
 });
 
-// ===========================================
-// Optional: email+password sign-in helper
-// (if you already have one, keep yours;
-// this version avoids adding redirect logic,
-// because the listener above handles it)
-// ===========================================
-async function handleSignInWithPassword(e) {
-  e?.preventDefault?.();
-  const email = document.getElementById('loginEmail')?.value?.trim();
-  const password = document.getElementById('loginPassword')?.value || '';
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) alert(error.message);
-}
-
-// =====================================================
-// “Dashboard” button helper — use this for the header
-// =====================================================
-async function goToDashboard() {
+// ==================================================
+// Helper used by header buttons/links
+// Call goToDashboard() to send the user to the right place
+// ==================================================
+window.goToDashboard = async function goToDashboard() {
   const { data: { user } } = await supabase.auth.getUser();
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  const email   = user?.email || '';
+  const isAdmin = email && ADMIN_EMAILS.includes(email);
   location.href = isAdmin ? '/admin.html' : '/dashboard.html';
-}
+};
 
-// expose helpers for onclick= attributes
-window.handleSignInWithPassword = handleSignInWithPassword;
-window.goToDashboard           = goToDashboard;
+// (optional) expose for debugging
+window.supabaseClient = supabase;
 </script>
