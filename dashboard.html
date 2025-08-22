@@ -11,10 +11,11 @@
 </head>
 <body>
 <nav>
-  <div class="brand">GrowIndia — Dashboard</div>
+  <div class="brand">GrowIndia Jobs</div>
   <div class="row">
-    <a class="btn ghost" href="index.html">Jobs</a>
-    <button id="logoutBtn" class="btn ghost">Logout</button>
+    <a href="#" onclick="goToDashboard(); return false;">Dashboard</a>
+    <button id="loginBtn" class="btn" onclick="sbAuth.openLogin()">Login / Sign up</button>
+    <button id="logoutBtn" class="btn ghost" onclick="sbAuth.signOut()" hidden>Logout</button>
   </div>
 </nav>
 
