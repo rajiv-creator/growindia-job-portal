@@ -1,3 +1,6 @@
+// app.js (must be pure JS — no <script> tags in this file)
+console.log('[app.js] loaded');
+window.sbAuth = window.sbAuth || {};
 // ==============================
 // Supabase init (uses config.js)
 // ==============================
