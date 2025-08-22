@@ -16,41 +16,31 @@ const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
 // Central redirect after ANY login (password or magic)
 // - Admins  -> /admin.html
 // - Others  -> /dashboard.html
-// This does NOT change your login UI; it only reacts
-// once a session exists.
 // =====================================================
 supabase.auth.onAuthStateChange(async (_event, session) => {
   const email = session?.user?.email || '';
   const isAdmin = ADMIN_EMAILS.includes(email);
   const target = isAdmin ? '/admin.html' : '/dashboard.html';
 
-  // Only redirect if we're not already on that page
   const here = location.pathname.toLowerCase();
   if (here !== target) location.href = target;
 });
 
 // ================================
-// Public helpers the pages call
-// (attached to window)
+// Helpers exposed globally
 // ================================
 
-// Decide where “Dashboard” should go for this user
 window.goToDashboard = async function () {
   const { data: { user } } = await supabase.auth.getUser();
   const isAdmin = ADMIN_EMAILS.includes(user?.email || '');
   location.href = isAdmin ? '/admin.html' : '/dashboard.html';
 };
 
-// Very small auth helper used by your buttons
 window.sbAuth = {
   async signInWithPassword(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert(error.message);
-      throw error;
-    }
+    if (error) { alert(error.message); throw error; }
   },
-  // Simple prompt-based login (keeps things minimal)
   async openLogin() {
     const email = prompt('Email:');
     if (!email) return;
@@ -64,7 +54,6 @@ window.sbAuth = {
   }
 };
 
-// Show/hide Login vs Logout based on session
 window.refreshAuthButtons = async function () {
   const { data: { user } } = await supabase.auth.getUser();
   const loginBtn  = document.getElementById('loginBtn');
@@ -75,11 +64,34 @@ window.refreshAuthButtons = async function () {
   }
 };
 
-// Wire buttons when the DOM is ready
+// ================================
+// One-time boot wiring
+// - hooks Login/Logout buttons
+// - auto-routes ANY "Dashboard" link
+//   (works even if it's still href="dashboard.html")
+// ================================
 document.addEventListener('DOMContentLoaded', () => {
   const loginBtn  = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
   if (loginBtn)  loginBtn.addEventListener('click', () => window.sbAuth.openLogin());
   if (logoutBtn) logoutBtn.addEventListener('click', () => window.sbAuth.signOut());
   window.refreshAuthButtons();
+
+  // Intercept any link that points to dashboard.html OR
+  // has a helper class/attr, and route smartly.
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a');
+    if (!a) return;
+
+    const href = (a.getAttribute('href') || '').toLowerCase();
+    const wantsDashboard =
+      a.classList.contains('js-dashboard') ||
+      a.hasAttribute('data-dashboard') ||
+      /dashboard\.html$/.test(href);
+
+    if (wantsDashboard) {
+      e.preventDefault();
+      window.goToDashboard();
+    }
+  });
 });
