@@ -73,34 +73,22 @@
   <script src="app.js"></script>
 
   <script>
-    // --- Reuse allow-list & helpers from app.js ---
-    const isAdminEmail = (email) => {
-      if (window.sb && typeof window.sb.isAdminEmail === 'function') {
-        return window.sb.isAdminEmail(email);
-      }
-      // Fallback if app.js didn't load for some reason
-      const fallback = ['rajiv.growindia1@gmail.com'];
-      const e = String(email || '').toLowerCase();
-      return fallback.map(x => x.toLowerCase()).includes(e);
-    };
-
-    // --- Guard early (no flicker), then load data only for admins ---
+    // --- Guard using role from profiles.role via app.js helpers ---
     async function guardAndLoad() {
       const { data: { user } } = await sb.supabase.auth.getUser();
-      const email = (user?.email || '').toLowerCase();
+      if (!user) { location.href = '/'; return; }
 
-      if (!isAdminEmail(email)) {
-        location.href = '/';
-        return;
-      }
+      const isAdmin = await sbAuth.isAdmin();
+      if (!isAdmin) { location.href = '/'; return; }
 
-      // Only admins reach here → load counts & tables
       await Promise.all([loadCounts(), loadTables()]);
     }
 
-    sb.supabase.auth.onAuthStateChange((_e, session) => {
-      const email = (session?.user?.email || '').toLowerCase();
-      if (!isAdminEmail(email)) location.href = '/';
+    sb.supabase.auth.onAuthStateChange(async (_e, session) => {
+      const authed = !!session?.user;
+      if (!authed) { location.href = '/'; return; }
+      const isAdmin = await sbAuth.isAdmin();
+      if (!isAdmin) { location.href = '/'; }
     });
 
     // Helpers
