@@ -22,6 +22,7 @@
     .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
     .link{color:#2563eb;text-decoration:none}
     .link:hover{text-decoration:underline}
+    .error{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px}
     @media (max-width:900px){.grid{grid-template-columns:1fr}.count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>
 </head>
@@ -67,13 +68,13 @@
     </div>
   </div>
 
-  <!-- Scripts loaded ONCE in correct order -->
+  <!-- Scripts -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 
   <script>
-    // --- Guard using role from profiles.role via app.js helpers ---
+    // Guard using role from profiles.role via app.js helpers
     async function guardAndLoad() {
       const { data: { user } } = await sb.supabase.auth.getUser();
       if (!user) { location.href = '/'; return; }
@@ -85,14 +86,17 @@
     }
 
     sb.supabase.auth.onAuthStateChange(async (_e, session) => {
-      const authed = !!session?.user;
-      if (!authed) { location.href = '/'; return; }
+      if (!session?.user) { location.href = '/'; return; }
       const isAdmin = await sbAuth.isAdmin();
       if (!isAdmin) { location.href = '/'; }
     });
 
     // Helpers
-    function el(id){ return document.getElementById(id); }
+    const el = id => document.getElementById(id);
+    function renderError(targetId, msg){
+      const host = el(targetId);
+      host.innerHTML = `<div class="error"><strong>Error:</strong> ${msg}</div>`;
+    }
     function renderTable(targetId, rows, columns){
       const host = el(targetId);
       if (!rows || rows.length === 0){ host.innerHTML = '<em>No data</em>'; return; }
@@ -103,13 +107,18 @@
       host.innerHTML = `<table>${thead}${tbody}</table>`;
     }
 
-    // Counts from view v_admin_counts
+    // Counts
     async function loadCounts(){
-      const { data, error } = await sb.supabase.from('v_admin_counts').select('*').single();
-      if (error){ console.error(error); return; }
+      const r = await sb.supabase.from('v_admin_counts').select('*').maybeSingle();
+      if (r.error){
+        console.error('v_admin_counts error:', r.error);
+        renderError('counts', r.error.message || 'Failed to load counts');
+        return;
+      }
+      const data = r.data || {};
       for (const k of Object.keys(data)){
-        const target = el('c_' + k);
-        if (target) target.textContent = data[k];
+        const t = el('c_' + k);
+        if (t) t.textContent = data[k];
       }
     }
 
@@ -121,7 +130,10 @@
         .select('id,title,company_name,location,status,featured,created_at')
         .order('created_at', { ascending:false })
         .limit(25);
-      if (!r.error){
+      if (r.error){
+        console.error('jobs error:', r.error);
+        renderError('tbl_jobs', r.error.message);
+      } else {
         renderTable('tbl_jobs', r.data, [
           {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
           {key:'location',label:'Location'}, {key:'status',label:'Status'},
@@ -135,7 +147,10 @@
         .select('id,job_id,applicant_id,status,created_at')
         .order('created_at',{ascending:false})
         .limit(25);
-      if (!r.error){
+      if (r.error){
+        console.error('applications error:', r.error);
+        renderError('tbl_apps', r.error.message);
+      } else {
         renderTable('tbl_apps', r.data, [
           {key:'id',label:'ID'}, {key:'job_id',label:'Job'}, {key:'applicant_id',label:'Applicant'},
           {key:'status',label:'Status'}, {key:'created_at',label:'Applied'}
@@ -148,7 +163,10 @@
         .select('id,name,website,owner_id,created_at')
         .order('created_at',{ascending:false})
         .limit(25);
-      if (!r.error){
+      if (r.error){
+        console.error('companies error:', r.error);
+        renderError('tbl_companies', r.error.message);
+      } else {
         renderTable('tbl_companies', r.data, [
           {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
           {key:'owner_id',label:'Owner'}, {key:'created_at',label:'Created'}
@@ -161,8 +179,13 @@
         .select('id,full_name,email,role,created_at')
         .order('created_at',{ascending:false})
         .limit(25);
-      if (!r.error){
-        renderTable('tbl_profiles', r.data, [
+      if (r.error){
+        console.error('profiles error:', r.error);
+        renderError('tbl_profiles', r.error.message);
+      } else {
+        // cast enum/txt safely
+        const rows = (r.data||[]).map(x => ({...x, role: (x.role||'').toString()}));
+        renderTable('tbl_profiles', rows, [
           {key:'id',label:'ID'}, {key:'full_name',label:'Name'}, {key:'email',label:'Email'},
           {key:'role',label:'Role'}, {key:'created_at',label:'Created'}
         ]);
