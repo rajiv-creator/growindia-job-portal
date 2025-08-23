@@ -1,35 +1,45 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Redirecting…</title>
+
+  <!-- Exact same versions as other pages -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=1"></script>
-  <script src="app.js?v=1"></script>
+  <script src="config.js?v=8"></script>
+  <script src="app.js?v=8"></script>
+
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:32px;color:#111}
+  </style>
 </head>
 <body>
-<script>
-(async () => {
-  // Allow supabase-js to pick up the magic link tokens in the URL
-  // (detectSessionInUrl is already true in app.js client init)
+  <p>Signing you in…</p>
 
-  // Clean the hash after session is stored
-  if (location.hash && location.hash.includes('access_token')) {
-    history.replaceState({}, '', location.pathname);
-  }
+  <script>
+  (async () => {
+    // Give supabase-js a tick to parse & store the magic-link tokens from the URL fragment
+    await new Promise(r => setTimeout(r, 50));
 
-  // Decide where to go
-  const { data: { user } } = await sb.supabase.auth.getUser();
-  if (!user) {
-    // No session? Go home
-    location.href = '/';
-    return;
-  }
+    // Clean the hash after session is stored
+    if (location.hash && (location.hash.includes('access_token') || location.hash.includes('provider_token'))) {
+      history.replaceState({}, '', location.pathname);
+    }
 
-  const isAdmin = await sbAuth.isAdmin();
-  location.href = isAdmin ? '/admin.html' : '/dashboard.html';
-})();
-</script>
+    // Decide where to go
+    const { data: { user } } = await sb.supabase.auth.getUser();
+    if (!user) {
+      // No session? Go home
+      location.replace('/');
+      return;
+    }
+
+    const isAdmin = await sbAuth.isAdmin();
+    location.replace(isAdmin ? '/admin.html' : '/dashboard.html');
+  })();
+  </script>
+
+  <noscript>This page requires JavaScript to redirect you.</noscript>
 </body>
 </html>
