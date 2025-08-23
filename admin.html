@@ -4,600 +4,525 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>GrowIndia — Admin</title>
-  <link rel="icon" href="favicon.ico">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Supabase v2 -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- Your project keys & client: must set window.supabase = createClient(...) -->
+  <script src="config.js?v=12"></script>
+
   <style>
-    :root{
-      --bg:#f6f7fb;--card:#fff;--b:#e5e7eb;--fg:#111;--muted:#6b7280;
-      --blue:#2563eb;--green:#16a34a;--orange:#f59e0b;--red:#dc2626;--sidebar:#0f172a
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--fg)}
-
-    /* Topbar */
-    .topbar{position:sticky;top:0;z-index:40;background:#0b1220;color:#e5e7eb;display:flex;align-items:center;gap:16px;padding:10px 16px;border-bottom:1px solid #0f1a2b}
-    .brand{font-weight:700}
-    .topbar input{flex:1;max-width:520px;background:#0f1a2b;border:1px solid #1e2a42;color:#e5e7eb;border-radius:8px;padding:8px 10px}
-    .topbar .btn{background:#1f2937;color:#e5e7eb;border:1px solid #334155;border-radius:8px;padding:8px 12px;cursor:pointer}
-
-    /* Sidebar */
-    .aside{position:fixed;left:0;top:48px;bottom:0;width:220px;background:var(--sidebar);color:#cbd5e1;border-right:1px solid #0b1220;overflow:auto}
-    .aside h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 12px;color:#7c879c}
-    .nav{list-style:none;margin:8px 0 24px;padding:0}
-    .nav a{display:flex;align-items:center;gap:10px;color:#cbd5e1;text-decoration:none;padding:8px 12px;border-left:3px solid transparent}
-    .nav a:hover{background:#0b1220}
-    .nav a.active{background:#0b1220;border-left-color:#3b82f6}
-
-    /* Main */
-    .main{margin-left:220px;padding:16px}
-    .breadcrumbs{font-size:12px;color:var(--muted);margin-bottom:8px}
-
-    /* KPI cards */
-    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:8px 0 16px}
-    .kpi{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px 14px}
-    .kpi .label{font-size:12px;color:var(--muted)}
-    .kpi .num{font-size:24px;font-weight:800}
-
-    /* Cards & grids */
-    .card{background:var(--card);border:1px solid var(--b);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin:0 0 16px}
-    .card h2{font-size:14px;margin:0;padding:12px 16px;border-bottom:1px solid var(--b);text-transform:uppercase;letter-spacing:.04em;color:#334155}
-    .pad{padding:12px 16px}
-    .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-    .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-
-    /* Forms & buttons */
-    label{display:block;font-size:12px;color:#475569;margin:6px 0 4px}
-    input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--b);border-radius:8px;font:inherit;background:#fff}
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .btn{padding:8px 12px;border-radius:8px;border:1px solid var(--b);background:var(--fg);color:#fff;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--fg)}
-    .btn.sm{font-size:12px;padding:6px 8px;border-radius:6px}
-
-    /* Tables */
+    :root { --bg:#0f172a; --card:#111827; --muted:#1f2937; --text:#e5e7eb; --text2:#9ca3af; --brand:#22c55e; --brand2:#3b82f6; --accent:#f59e0b; --danger:#ef4444; }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial}
+    a{color:inherit;text-decoration:none}
+    .wrap{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+    .side{background:#0b1222;border-right:1px solid #111320;padding:16px 12px;position:sticky;top:0;height:100vh}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700;margin-bottom:18px}
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--brand)}
+    .nav a{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;color:var(--text2)}
+    .nav a.active, .nav a:hover{background:var(--muted);color:var(--text)}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #111320;background:#0b1222;position:sticky;top:0;z-index:5}
+    .search{display:flex;gap:10px;align-items:center;background:var(--muted);padding:8px 12px;border-radius:10px;min-width:280px}
+    .search input{all:unset;color:var(--text);width:260px}
+    .user{display:flex;gap:10px;align-items:center}
+    .main{padding:18px}
+    .grid{display:grid;gap:14px}
+    @media(min-width:900px){ .grid-4{grid-template-columns:repeat(4,1fr)} .grid-2{grid-template-columns:1fr 1fr} }
+    .card{background:var(--card);border:1px solid #111320;border-radius:14px;padding:16px}
+    .kpi{display:flex;flex-direction:column;gap:6px}
+    .kpi .big{font-size:26px;font-weight:700}
+    .muted{color:var(--text2)}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .btn{background:var(--brand2);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn.alt{background:var(--muted);color:var(--text)}
+    .btn.warn{background:var(--danger)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
     table{width:100%;border-collapse:collapse}
-    th,td{font-size:14px;padding:8px 10px;border-bottom:1px solid var(--b);text-align:left;vertical-align:top}
-    th{background:#f8fafc;color:#475569}
-    .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;border:1px solid var(--b);background:#f1f5f9;font-size:12px}
-    .error{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px}
-    .ok{color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px}
-
+    th,td{padding:10px;border-bottom:1px solid #111320;text-align:left}
+    th{color:var(--text2);font-weight:600}
+    .pill{padding:5px 10px;border-radius:999px;font-size:12px}
+    .ok{background:rgba(34,197,94,.15);color:#86efac}
+    .draft{background:rgba(245,158,11,.15);color:#fcd34d}
+    .closed{background:rgba(239,68,68,.15);color:#fca5a5}
+    .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .toolbar input, .toolbar select{background:#0b1222;border:1px solid #111320;color:var(--text);padding:8px 10px;border-radius:10px}
+    .pagination{display:flex;gap:8px;align-items:center}
+    .empty{padding:24px;text-align:center;color:var(--text2)}
+    .toast{position:fixed;right:16px;bottom:16px;background:#0b1222;border:1px solid #111320;color:var(--text);padding:12px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.25s}
+    .toast.show{opacity:1;transform:translateY(0)}
     /* Modal */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;padding:20px;z-index:50}
-    .modal.open{display:grid}
-    .modal .box{max-width:960px;width:100%;background:#fff;border-radius:12px;border:1px solid var(--b)}
-    .modal .hd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--b)}
-    .modal .bd{padding:12px 16px}
-    .modal .ft{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--b)}
-
-    @media (max-width:1100px){
-      .aside{position:static;width:auto}
-      .main{margin-left:0}
-      .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .grid-2{grid-template-columns:1fr}
-      .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
-    }
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal.show{display:flex}
+    .panel{background:#0b1222;border:1px solid #111320;border-radius:16px;max-width:800px;width:100%}
+    .panel .head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #111320}
+    .panel .body{padding:16px}
+    .form{display:grid;gap:12px}
+    @media(min-width:760px){ .form{grid-template-columns:1fr 1fr} .form .full{grid-column:1/-1} }
+    label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px}
+    input[type=text], input[type=number], input[type=email], input[type=url], textarea, select{width:100%;background:#0b1222;border:1px solid #1f2537;color:var(--text);padding:10px;border-radius:10px}
+    textarea{min-height:100px;resize:vertical}
   </style>
 </head>
 <body>
-  <!-- Top bar -->
-  <div class="topbar">
-    <div class="brand">JobBox</div>
-    <input placeholder="Search (ctrl/⌘+k)"/>
-    <button class="btn" onclick="location.href='/'">View website</button>
-    <div style="margin-left:auto" id="whoami"></div>
+  <div class="wrap">
+    <aside class="side">
+      <div class="brand"><span class="dot"></span> GrowIndia Admin</div>
+      <nav class="nav" id="nav">
+        <a class="active" href="#dashboard" data-target="dashboardSection">📊 Dashboard</a>
+        <a href="#jobs" data-target="jobsSection">💼 Jobs</a>
+        <a href="#employers" data-target="employersSection">🏢 Employers</a>
+        <a href="#applications" data-target="applicationsSection">📝 Applications</a>
+        <a href="#logout" id="logoutBtn">🚪 Logout</a>
+      </nav>
+    </aside>
+
+    <div>
+      <div class="top">
+        <div class="search"><span>🔎</span><input id="topSearch" placeholder="Search jobs, employers, candidates..." /></div>
+        <div class="user"><span id="whoami" class="muted">—</span></div>
+      </div>
+
+      <main class="main">
+        <!-- DASHBOARD -->
+        <section id="dashboardSection">
+          <section class="grid grid-4">
+            <div class="card kpi"><span class="muted">Total Jobs</span><span id="kpiJobs" class="big">0</span></div>
+            <div class="card kpi"><span class="muted">Active Jobs</span><span id="kpiJobsActive" class="big">0</span></div>
+            <div class="card kpi"><span class="muted">Employers</span><span id="kpiEmployers" class="big">0</span></div>
+            <div class="card kpi"><span class="muted">Applications</span><span id="kpiApps" class="big">0</span></div>
+          </section>
+
+          <section class="grid grid-2" style="margin-top:14px">
+            <div class="card"><div class="row" style="justify-content:space-between"><h3>Applications (last 14 days)</h3></div><canvas id="appsLine"></canvas></div>
+            <div class="card"><div class="row" style="justify-content:space-between"><h3>Jobs by Status</h3></div><canvas id="jobsPie"></canvas></div>
+          </section>
+        </section>
+
+        <!-- JOBS CRUD -->
+        <section id="jobsSection" style="margin-top:14px;display:none">
+          <div class="card">
+            <div class="row" style="justify-content:space-between">
+              <h3>Jobs</h3>
+              <div class="toolbar">
+                <input id="jobSearch" placeholder="Search title/company…" />
+                <select id="jobStatus">
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="draft">Draft</option>
+                  <option value="closed">Closed</option>
+                </select>
+                <select id="jobType">
+                  <option value="">All types</option>
+                  <option>Full-time</option>
+                  <option>Part-time</option>
+                  <option>Contract</option>
+                  <option>Internship</option>
+                  <option>Remote</option>
+                </select>
+                <button class="btn" id="addJobBtn">＋ Add Job</button>
+              </div>
+            </div>
+            <div style="overflow:auto;margin-top:10px">
+              <table id="jobsTable">
+                <thead>
+                  <tr>
+                    <th>Title</th><th>Company</th><th>Location</th><th>Type</th><th>Salary</th><th>Status</th><th style="width:160px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="jobsTbody">
+                  <tr><td colspan="7" class="empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="row" style="justify-content:space-between;margin-top:10px">
+              <div class="muted" id="jobsCount">—</div>
+              <div class="pagination">
+                <button class="btn alt" id="prevPage">Prev</button>
+                <span id="pageInfo" class="muted">1 / 1</span>
+                <button class="btn alt" id="nextPage">Next</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- EMPLOYERS CRUD -->
+        <section id="employersSection" style="margin-top:14px;display:none">
+          <div class="card">
+            <div class="row" style="justify-content:space-between">
+              <h3>Employers</h3>
+              <div class="toolbar">
+                <input id="empSearch" placeholder="Search name/email…" />
+                <select id="empVerified">
+                  <option value="">All</option>
+                  <option value="true">Verified</option>
+                  <option value="false">Unverified</option>
+                </select>
+                <button class="btn" id="addEmpBtn">＋ Add Employer</button>
+              </div>
+            </div>
+            <div style="overflow:auto;margin-top:10px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th><th>Email</th><th>Website</th><th>Phone</th><th>Verified</th><th style="width:160px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="empTbody">
+                  <tr><td colspan="6" class="empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="row" style="justify-content:space-between;margin-top:10px">
+              <div class="muted" id="empCount">—</div>
+              <div class="pagination">
+                <button class="btn alt" id="empPrev">Prev</button>
+                <span id="empPageInfo" class="muted">1 / 1</span>
+                <button class="btn alt" id="empNext">Next</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- APPLICATIONS CRUD -->
+        <section id="applicationsSection" style="margin-top:14px;display:none">
+          <div class="card">
+            <div class="row" style="justify-content:space-between">
+              <h3>Applications</h3>
+              <div class="toolbar">
+                <input id="appSearch" placeholder="Search name/email…" />
+                <select id="appStatus">
+                  <option value="">All statuses</option>
+                  <option>submitted</option>
+                  <option>reviewed</option>
+                  <option>shortlisted</option>
+                  <option>rejected</option>
+                  <option>hired</option>
+                </select>
+                <select id="appJob"></select>
+                <button class="btn" id="addAppBtn">＋ Add Application</button>
+              </div>
+            </div>
+            <div style="overflow:auto;margin-top:10px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Candidate</th><th>Email</th><th>Job</th><th>Status</th><th>Resume</th><th style="width:160px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="appsTbody">
+                  <tr><td colspan="6" class="empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="row" style="justify-content:space-between;margin-top:10px">
+              <div class="muted" id="appsCount">—</div>
+              <div class="pagination">
+                <button class="btn alt" id="appsPrev">Prev</button>
+                <span id="appsPageInfo" class="muted">1 / 1</span>
+                <button class="btn alt" id="appsNext">Next</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   </div>
 
-  <!-- Sidebar -->
-  <aside class="aside">
-    <h3>Dashboard</h3>
-    <nav class="nav">
-      <a href="#reports" class="active">Reports</a>
-    </nav>
-
-    <h3>Job Board</h3>
-    <nav class="nav">
-      <a href="#jobs">Jobs</a>
-      <a href="#applications">Job Applications</a>
-      <a href="#accounts">Accounts</a>
-      <a href="#companies">Companies</a>
-      <a href="#attributes" onclick="alert('Custom attributes not in schema yet');return false;">Job Attributes</a>
-    </nav>
-
-    <h3>Content</h3>
-    <nav class="nav">
-      <a href="#" onclick="alert('Pages/Blog not wired in DB yet');return false;">Pages</a>
-      <a href="#" onclick="alert('Blog not wired in DB yet');return false;">Blog</a>
-    </nav>
-
-    <h3>Settings</h3>
-    <nav class="nav">
-      <a href="#" onclick="alert('Global settings not wired yet');return false;">Platform Administration</a>
-    </nav>
-  </aside>
-
-  <!-- Main -->
-  <main class="main">
-    <div class="breadcrumbs">Dashboard / <strong>Reports</strong></div>
-    <h1 id="reports">Reports</h1>
-
-    <!-- KPI rows like screenshot -->
-    <div class="kpis" id="kpis">
-      <div class="kpi"><div class="label">Total Jobs</div><div class="num" id="k_total_jobs">–</div></div>
-      <div class="kpi"><div class="label">Active Jobs</div><div class="num" id="k_active_jobs">–</div></div>
-      <div class="kpi"><div class="label">Closed Jobs</div><div class="num" id="k_closed_jobs">–</div></div>
-      <div class="kpi"><div class="label">Featured Jobs</div><div class="num" id="k_featured_jobs">–</div></div>
-
-      <div class="kpi"><div class="label">Total Applications</div><div class="num" id="k_total_apps">–</div></div>
-      <div class="kpi"><div class="label">Pending Applications</div><div class="num" id="k_pending_apps">–</div></div>
-      <div class="kpi"><div class="label">Approved Applications</div><div class="num" id="k_approved_apps">–</div></div>
-      <div class="kpi"><div class="label">Rejected Applications</div><div class="num" id="k_rejected_apps">–</div></div>
-
-      <div class="kpi"><div class="label">Total Companies</div><div class="num" id="k_total_companies">–</div></div>
-      <div class="kpi"><div class="label">Featured Companies</div><div class="num" id="k_featured_companies">–</div></div>
-      <div class="kpi"><div class="label">Accounts</div><div class="num" id="k_total_profiles">–</div></div>
-      <div class="kpi"><div class="label">Shortlisted</div><div class="num" id="k_shortlisted_apps">–</div></div>
-    </div>
-
-    <!-- Charts row -->
-    <div class="grid-2">
-      <div class="card">
-        <h2>Application Trends (Last 30 Days)</h2>
-        <div class="pad"><canvas id="ch_apps_30"></canvas></div>
-      </div>
-      <div class="card">
-        <h2>Jobs by Category (Employment)</h2>
-        <div class="pad"><canvas id="ch_jobs_emp"></canvas></div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="card">
-        <h2>Jobs by Type (Bar)</h2>
-        <div class="pad"><canvas id="ch_jobs_type"></canvas></div>
-      </div>
-      <div class="card">
-        <h2>Applications by Location</h2>
-        <div class="pad"><canvas id="ch_apps_loc"></canvas></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Most Applied Jobs</h2>
-      <div class="pad"><div id="tbl_top_jobs">Loading…</div></div>
-    </div>
-
-    <!-- Companies -->
-    <h1 id="companies" style="margin-top:24px">Companies</h1>
-    <div class="card">
-      <h2>Manage Companies</h2>
-      <div class="pad">
-        <form id="companyForm" class="grid-3">
-          <div><label>Name</label><input id="co_name" required placeholder="Company name"></div>
-          <div><label>Website</label><input id="co_site" placeholder="https://…"></div>
-          <div><label>Owner email (optional)</label><input id="co_owner_email" placeholder="owner@email.com"></div>
-          <div class="row" style="grid-column:1/-1">
-            <button class="btn" type="submit">Create company</button>
-            <span id="companyMsg" class="muted"></span>
-          </div>
-        </form>
-        <div id="tbl_companies" style="margin-top:12px">Loading…</div>
-      </div>
-    </div>
-
-    <!-- Jobs -->
-    <h1 id="jobs" style="margin-top:24px">Jobs</h1>
-    <div class="card">
-      <h2>Manage Jobs</h2>
-      <div class="pad">
-        <div class="row" style="margin-bottom:8px">
-          <input id="jobSearch" placeholder="Search title/company/location" style="flex:1">
-          <select id="jobStatus">
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="closed">Closed</option>
-          </select>
-          <select id="jobEmployment">
-            <option value="">All employment</option>
-            <option value="full_time">full_time</option>
-            <option value="part_time">part_time</option>
-            <option value="contract">contract</option>
-            <option value="internship">internship</option>
-          </select>
-          <button class="btn sm" id="jobReload">Reload</button>
-          <button class="btn sm ghost" id="openCreateJob">+ New job</button>
-        </div>
-        <div id="tbl_jobs">Loading…</div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <!-- Applications -->
-      <section>
-        <h1 id="applications">Applications</h1>
-        <div class="card">
-          <h2>All Applications</h2>
-          <div class="pad"><div id="tbl_apps">Loading…</div></div>
-        </div>
-      </section>
-
-      <!-- Accounts -->
-      <section>
-        <h1 id="accounts">Accounts</h1>
-        <div class="card">
-          <h2>Profiles</h2>
-          <div class="pad"><div id="tbl_profiles">Loading…</div></div>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- Job edit/create modal -->
+  <!-- Add/Edit Job Modal -->
   <div class="modal" id="jobModal">
-    <div class="box">
-      <div class="hd">
-        <strong id="jobModalTitle">New Job</strong>
-        <button class="btn sm ghost" id="closeJobModal">✕</button>
-      </div>
-      <div class="bd">
-        <form id="jobForm">
-          <div class="grid-3">
-            <div><label>Company</label><select id="jf_company_id" required></select></div>
-            <div><label>Title</label><input id="jf_title" required></div>
-            <div><label>Location</label><input id="jf_location" placeholder="Remote / City"></div>
-
-            <div><label>Employment</label>
-              <select id="jf_employment">
-                <option value="full_time">full_time</option>
-                <option value="part_time">part_time</option>
-                <option value="contract">contract</option>
-                <option value="internship">internship</option>
-              </select>
-            </div>
-            <div><label>Remote?</label>
-              <select id="jf_is_remote"><option value="true">Yes</option><option value="false">No</option></select>
-            </div>
-            <div><label>Status</label>
-              <select id="jf_status"><option value="active">active</option><option value="closed">closed</option></select>
-            </div>
-
-            <div><label>Salary min</label><input id="jf_salary_min" type="number" min="0" step="1"></div>
-            <div><label>Salary max</label><input id="jf_salary_max" type="number" min="0" step="1"></div>
-            <div><label>Currency</label><input id="jf_currency" placeholder="INR"></div>
-
-            <div class="row" style="align-items:center"><label style="margin:0">Featured</label><input id="jf_featured" type="checkbox" style="width:auto"></div>
+    <div class="panel">
+      <div class="head"><b id="modalTitle">Add Job</b><button class="btn alt" id="closeModal">✕</button></div>
+      <div class="body">
+        <form id="jobForm" class="form">
+          <input type="hidden" id="job_id"/>
+          <div>
+            <label>Title</label>
+            <input type="text" id="title" required/>
           </div>
-          <input type="hidden" id="jf_id">
+          <div>
+            <label>Company</label>
+            <input type="text" id="company" required/>
+          </div>
+          <div>
+            <label>Location</label>
+            <input type="text" id="location" placeholder="City, State"/>
+          </div>
+          <div>
+            <label>Type</label>
+            <select id="type">
+              <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option><option>Remote</option>
+            </select>
+          </div>
+          <div>
+            <label>Salary Min</label>
+            <input type="number" id="salary_min" min="0" step="1000"/>
+          </div>
+          <div>
+            <label>Salary Max</label>
+            <input type="number" id="salary_max" min="0" step="1000"/>
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="status">
+              <option value="active">Active</option><option value="draft">Draft</option><option value="closed">Closed</option>
+            </select>
+          </div>
+          <div class="full">
+            <label>Description</label>
+            <textarea id="description" placeholder="Role description, requirements, etc."></textarea>
+          </div>
+          <div class="full row" style="justify-content:flex-end;margin-top:8px">
+            <button type="button" class="btn alt" id="cancelJob">Cancel</button>
+            <button type="submit" class="btn" id="saveJob">Save</button>
+          </div>
         </form>
-        <div id="jobFormMsg" class="muted" style="margin-top:6px"></div>
-      </div>
-      <div class="ft">
-        <button class="btn ghost" id="cancelJob">Cancel</button>
-        <button class="btn" id="saveJob">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="config.js?v=10"></script>
-  <script src="app.js?v=10"></script>
+  <!-- Add/Edit Employer Modal -->
+  <div class="modal" id="empModal">
+    <div class="panel">
+      <div class="head"><b id="empModalTitle">Add Employer</b><button class="btn alt" id="closeEmpModal">✕</button></div>
+      <div class="body">
+        <form id="empForm" class="form">
+          <input type="hidden" id="emp_id"/>
+          <div>
+            <label>Name</label>
+            <input id="emp_name" type="text" required/>
+          </div>
+          <div>
+            <label>Email</label>
+            <input id="emp_email" type="email" required/>
+          </div>
+          <div>
+            <label>Website</label>
+            <input id="emp_website" type="url" placeholder="https://…"/>
+          </div>
+          <div>
+            <label>Phone</label>
+            <input id="emp_phone" type="text"/>
+          </div>
+          <div class="full">
+            <label><input type="checkbox" id="emp_verified"/> Verified</label>
+          </div>
+          <div class="full">
+            <label>Notes</label>
+            <textarea id="emp_notes" placeholder="Internal notes (not public)"></textarea>
+          </div>
+          <div class="full row" style="justify-content:flex-end;margin-top:8px">
+            <button type="button" class="btn alt" id="cancelEmp">Cancel</button>
+            <button type="submit" class="btn" id="saveEmp">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Application Modal -->
+  <div class="modal" id="appModal">
+    <div class="panel">
+      <div class="head"><b id="appModalTitle">Add Application</b><button class="btn alt" id="closeAppModal">✕</button></div>
+      <div class="body">
+        <form id="appForm" class="form">
+          <input type="hidden" id="app_id"/>
+          <div>
+            <label>Job</label>
+            <select id="app_job_id" required></select>
+          </div>
+          <div>
+            <label>Candidate name</label>
+            <input id="app_name" required/>
+          </div>
+          <div>
+            <label>Email</label>
+            <input id="app_email" type="email" required/>
+          </div>
+          <div class="full">
+            <label>Resume URL</label>
+            <input id="app_resume" type="url" placeholder="https://…"/>
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="app_status">
+              <option>submitted</option>
+              <option>reviewed</option>
+              <option>shortlisted</option>
+              <option>rejected</option>
+              <option>hired</option>
+            </select>
+          </div>
+          <div class="full row" style="justify-content:flex-end;margin-top:8px">
+            <button type="button" class="btn alt" id="cancelApp">Cancel</button>
+            <button type="submit" class="btn" id="saveApp">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 
   <script>
-  // Smooth nav highlighting
-  document.querySelectorAll('.aside .nav a[href^="#"]').forEach(a=>{
-    a.addEventListener('click', () => {
-      document.querySelectorAll('.aside .nav a').forEach(x=>x.classList.remove('active'));
-      a.classList.add('active');
-    });
-  });
+    // ---- Helpers ----
+    const db = window.supabase; // from config.js
+    const show = (el, flag=true)=> el.classList[flag?'add':'remove']('show');
+    const toast = (msg, ok=true)=>{ const t=document.getElementById('toast'); t.textContent = msg; t.style.borderColor = ok ? 'var(--brand)' : 'var(--danger)'; show(t,true); setTimeout(()=>show(t,false),2200); };
+    const fmtINR = (n)=> n? new Intl.NumberFormat('en-IN').format(n):'-';
+    function escapeHTML(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+    function v(id){ return document.getElementById(id).value.trim(); }
+    function n(id){ const x = document.getElementById(id).value; return x===''? null : Number(x); }
 
-  window.addEventListener('load', async () => {
-    const sb = (window.sb && window.sb.supabase) ? window.sb.supabase :
-      window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__, {
-        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-      });
-
-    const el = id => document.getElementById(id);
-    const setK = (k,v)=>{ const t=el('k_'+k); if(t) t.textContent=(v ?? '–'); };
-    const renderError=(id,msg)=>{ el(id).innerHTML='<div class="error"><strong>Error:</strong> '+msg+'</div>'; };
-    const renderTable=(id,rows,cols)=>{
-      const host = el(id);
-      if(!rows||rows.length===0){ host.innerHTML='<em>No data</em>'; return; }
-      const thead = '<thead><tr>'+cols.map(c=>`<th>${c.label}</th>`).join('')+'</tr></thead>';
-      const tbody = '<tbody>'+rows.map(r=>(
-        '<tr>'+cols.map(c=>`<td>${(typeof c.render==='function'?c.render(r):(r[c.key]??''))}</td>`).join('')+'</tr>'
-      )).join('')+'</tbody>';
-      host.innerHTML = `<table>${thead}${tbody}</table>`;
-    };
-
-    // Who am I
-    const me = await sb.auth.getUser();
-    el('whoami').textContent = me.data?.user?.email || '';
-
-    // Guard — admin only
-    const rr = await sb.from('profiles').select('role').eq('id', me.data?.user?.id||'').maybeSingle();
-    const adminOK = !rr.error && ['admin','super_admin'].includes(String(rr.data?.role||'').toLowerCase());
-    if(!adminOK){
-      document.body.insertAdjacentHTML('beforeend','<div class="error" style="margin:16px">You are not an admin.</div>');
-      return;
+    // ---- Auth ----
+    async function guard() {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { location.href = 'post.auth.html'; return; }
+      document.getElementById('whoami').textContent = session.user.email;
     }
+    document.getElementById('logoutBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await db.auth.signOut(); location.href='post.auth.html'; });
 
-    // ---------------- KPI COUNTS ----------------
-    async function loadCounts(){
-      // Prefer view if present
-      const v = await sb.from('v_admin_counts').select('*').maybeSingle();
-      if(!v.error && v.data){
-        const m=v.data;
-        setK('total_jobs', m.total_jobs);
-        setK('active_jobs', m.active_jobs);
-        setK('closed_jobs', m.closed_jobs);
-        setK('featured_jobs', m.featured_jobs);
-        setK('total_apps', m.total_apps);
-        setK('pending_apps', m.pending_apps);
-        setK('approved_apps', m.reviewed_apps ?? m.approved_apps ?? 0);
-        setK('rejected_apps', m.rejected_apps ?? 0);
-        setK('shortlisted_apps', m.shortlisted_apps ?? 0);
-        setK('total_companies', m.total_companies);
-      }else{
-        // Fallback
-        const [
-          jobsT, jobsA, jobsC, jobsF,
-          appsT, appsP, appsR, appsRej, appsShort,
-          compsT
-        ] = await Promise.all([
-          sb.from('jobs').select('id',{count:'exact',head:true}),
-          sb.from('jobs').select('id',{count:'exact',head:true}).eq('status','active'),
-          sb.from('jobs').select('id',{count:'exact',head:true}).eq('status','closed'),
-          sb.from('jobs').select('id',{count:'exact',head:true}).eq('featured',true),
-
-          sb.from('applications').select('id',{count:'exact',head:true}),
-          sb.from('applications').select('id',{count:'exact',head:true}).eq('status','pending'),
-          sb.from('applications').select('id',{count:'exact',head:true}).eq('status','reviewed'),
-          sb.from('applications').select('id',{count:'exact',head:true}).eq('status','rejected'),
-          sb.from('applications').select('id',{count:'exact',head:true}).eq('status','shortlisted'),
-
-          sb.from('companies').select('id',{count:'exact',head:true}),
-        ]);
-        setK('total_jobs', jobsT.count??'–');
-        setK('active_jobs', jobsA.count??'–');
-        setK('closed_jobs', jobsC.count??'–');
-        setK('featured_jobs', jobsF.count??'–');
-        setK('total_apps', appsT.count??'–');
-        setK('pending_apps', appsP.count??'–');
-        setK('approved_apps', appsR.count??'–');     // "approved" mapped to reviewed
-        setK('rejected_apps', appsRej.count??'–');
-        setK('shortlisted_apps', appsShort.count??'–');
-        setK('total_companies', compsT.count??'–');
-      }
-      // Featured companies = distinct companies that have a featured job
-      const fc = await sb.from('jobs').select('company_id', {distinct:true}).eq('featured', true);
-      setK('featured_companies', (fc.data||[]).length);
-
-      const profs = await sb.from('profiles').select('id',{count:'exact',head:true});
-      setK('total_profiles', profs.count ?? '–');
+    // ---- Router (show sections) ----
+    const sections = ['dashboardSection','jobsSection','employersSection','applicationsSection'];
+    function showSection(id){
+      sections.forEach(s=>{ const el=document.getElementById(s); if(!el) return; el.style.display = (s===id)?'block':'none'; });
+      document.querySelectorAll('#nav a').forEach(a=> a.classList.toggle('active', a.dataset.target===id));
     }
-
-    // ---------------- CHARTS ----------------
-    let chApps30, chJobsEmp, chJobsType, chAppsLoc;
-
-    async function loadCharts(){
-      // Apps last 30 days
-      const since = new Date(); since.setDate(since.getDate()-29);
-      const a = await sb.from('applications').select('created_at').gte('created_at', since.toISOString());
-      const days = [...Array(30)].map((_,i)=>{ const d=new Date(since); d.setDate(since.getDate()+i); return d.toISOString().slice(0,10); });
-      const counts = days.map(d => (a.data||[]).filter(x => (x.created_at||'').slice(0,10)===d).length);
-      if (chApps30) chApps30.destroy();
-      chApps30 = new Chart(el('ch_apps_30'), { type:'line', data:{ labels:days, datasets:[{label:'Applications', data:counts, tension:.35}] },
-        options:{ scales:{ x:{ ticks:{maxTicksLimit:6}}}} });
-
-      // Jobs by employment (pie)
-      const byEmp = await sb.from('jobs').select('employment');
-      const groups = ['full_time','part_time','contract','internship'];
-      const empCounts = groups.map(g => (byEmp.data||[]).filter(x => (x.employment||'')===g).length);
-      if (chJobsEmp) chJobsEmp.destroy();
-      chJobsEmp = new Chart(el('ch_jobs_emp'), { type:'pie', data:{ labels:groups, datasets:[{ data:empCounts }] } });
-
-      // Jobs by type (bar) — same data as above but bar
-      if (chJobsType) chJobsType.destroy();
-      chJobsType = new Chart(el('ch_jobs_type'), { type:'bar', data:{ labels:groups, datasets:[{ label:'Jobs', data:empCounts }] }, options:{plugins:{legend:{display:false}}} });
-
-      // Applications by location — join app→job and group by job.location
-      const aj = await sb.from('applications').select('job_id');
-      const ids = [...new Set((aj.data||[]).map(x=>x.job_id))];
-      let locs = [];
-      if (ids.length){
-        const j = await sb.from('jobs').select('id,location').in('id', ids);
-        const map = new Map((j.data||[]).map(r=>[r.id,r.location||'Unknown']));
-        locs = (aj.data||[]).map(x=> map.get(x.job_id) || 'Unknown');
-      }
-      const locKeys = [...new Set(locs)];
-      const locVals = locKeys.map(k => locs.filter(x=>x===k).length);
-      if (chAppsLoc) chAppsLoc.destroy();
-      chAppsLoc = new Chart(el('ch_apps_loc'), { type:'bar', data:{ labels:locKeys, datasets:[{ label:'Apps', data:locVals }] }, options:{plugins:{legend:{display:false}}} });
-
-      // Most applied jobs table
-      const agg = {};
-      (aj.data||[]).forEach(r => agg[r.job_id]=(agg[r.job_id]||0)+1);
-      const topIds = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id])=>id);
-      let rows=[];
-      if (topIds.length){
-        const jj = await sb.from('jobs').select('id,title,companies(name)').in('id', topIds);
-        const map = new Map((jj.data||[]).map(r=>[r.id, r]));
-        rows = topIds.map(id => ({ id, title: map.get(id)?.title||'(Job)', company: map.get(id)?.companies?.name||'', views: agg[id] }));
-      }
-      renderTable('tbl_top_jobs', rows, [
-        {key:'id',label:'ID'}, {key:'title',label:'Name'}, {key:'company',label:'Company'}, {key:'views',label:'Applications'}
-      ]);
-    }
-
-    // ---------------- COMPANIES ----------------
-    async function loadCompanyOptions(){
-      const sel=el('jf_company_id'); if(!sel) return;
-      const r=await sb.from('companies').select('id,name').order('name'); sel.innerHTML=(r.data||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-    }
-    async function loadCompaniesTable(){
-      const r=await sb.from('companies').select('id,name,website,owner_id,created_at').order('created_at',{ascending:false}).limit(100);
-      if(r.error){ renderError('tbl_companies',r.error.message); return; }
-      renderTable('tbl_companies', r.data||[], [
-        {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'}, {key:'owner_id',label:'Owner'}, {key:'created_at',label:'Created'},
-        {label:'', render:r=>`<button class="btn sm ghost" data-delco="${r.id}">Delete</button>`}
-      ]);
-      el('tbl_companies').querySelectorAll('[data-delco]').forEach(b=>{
-        b.onclick=async()=>{ if(!confirm('Delete this company and its jobs?')) return; const id=b.getAttribute('data-delco'); const d=await sb.from('companies').delete().eq('id',id); if(d.error) alert(d.error.message); await Promise.all([loadCompaniesTable(), loadCounts(), loadJobsTable(), loadCompanyOptions()]); };
-      });
-    }
-    el('companyForm').addEventListener('submit', async e=>{
-      e.preventDefault();
-      const name=el('co_name').value.trim(), site=el('co_site').value.trim()||null, ownerEmail=el('co_owner_email').value.trim(), msg=el('companyMsg');
-      msg.textContent='Creating…';
-      let owner_id=null;
-      if(ownerEmail){
-        const r=await sb.from('profiles').select('id').ilike('email', ownerEmail).maybeSingle();
-        if(r.error){ alert(r.error.message); msg.textContent=''; return; }
-        owner_id=r.data?.id||null;
-      }
-      const ins=await sb.from('companies').insert([{name,website:site,owner_id}]).select('id').maybeSingle();
-      if(ins.error){ alert(ins.error.message); msg.textContent=''; return; }
-      msg.textContent='Created ✔'; e.target.reset();
-      await Promise.all([loadCompanyOptions(), loadCompaniesTable(), loadCounts()]);
-      setTimeout(()=>msg.textContent='',1000);
+    window.addEventListener('hashchange', ()=>{
+      const key = (location.hash||'#dashboard').replace('#','');
+      const map = { dashboard:'dashboardSection', jobs:'jobsSection', employers:'employersSection', applications:'applicationsSection' };
+      showSection(map[key]||'dashboardSection');
     });
 
-    // ---------------- JOBS ----------------
-    const jobModal=el('jobModal');
-    const openModal=()=>jobModal.classList.add('open');
-    const closeModal=()=>jobModal.classList.remove('open');
-    el('closeJobModal').onclick=closeModal; el('cancelJob').onclick=closeModal;
-    el('openCreateJob').onclick=()=>openJobEditor();
-
-    function getJobPayload(){
-      const num = (id)=>{ const v=el(id).value; return v===''?null:parseInt(v,10); };
-      return {
-        company_id: el('jf_company_id').value||null,
-        title: el('jf_title').value.trim(),
-        location: el('jf_location').value.trim()||null,
-        employment: el('jf_employment').value,
-        is_remote: el('jf_is_remote').value==='true',
-        status: el('jf_status').value,
-        salary_min: num('jf_salary_min'),
-        salary_max: num('jf_salary_max'),
-        currency: el('jf_currency').value.trim()||null,
-        featured: el('jf_featured').checked
-      };
+    // ---- KPIs & Charts ----
+    let appsLineChart, jobsPieChart;
+    async function loadKPIsAndCharts(){
+      const [{ data: jobs, error: e1 }, { data: emps, error: e2 }, { data: apps, error: e3 }] = await Promise.all([
+        db.from('jobs').select('id,status,created_at'),
+        db.from('employers').select('id'),
+        db.from('applications').select('id,created_at')
+      ]);
+      if (e1||e2||e3){ console.error(e1||e2||e3); return; }
+      document.getElementById('kpiJobs').textContent = jobs.length;
+      document.getElementById('kpiJobsActive').textContent = jobs.filter(j=>j.status==='active').length;
+      document.getElementById('kpiEmployers').textContent = emps.length;
+      document.getElementById('kpiApps').textContent = apps.length;
+      const days = [...Array(14)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()-(13-i)); return d.toISOString().slice(0,10); });
+      const countByDay = days.map(d => apps.filter(a => (a.created_at||'').slice(0,10)===d).length);
+      const ctx1 = document.getElementById('appsLine'); appsLineChart?.destroy();
+      appsLineChart = new Chart(ctx1, { type:'line', data:{ labels:days, datasets:[{ label:'Applications', data:countByDay, tension:.35, fill:false }]}, options:{ plugins:{ legend:{ display:false }}, scales:{ x:{ ticks:{ color:'#9ca3af'}}, y:{ ticks:{ color:'#9ca3af'}}}} });
+      const sCount = { active:0, draft:0, closed:0 }; jobs.forEach(j => sCount[j.status] = (sCount[j.status]||0)+1);
+      const ctx2 = document.getElementById('jobsPie'); jobsPieChart?.destroy();
+      jobsPieChart = new Chart(ctx2, { type:'doughnut', data:{ labels:['Active','Draft','Closed'], datasets:[{ data:[sCount.active||0, sCount.draft||0, sCount.closed||0] }]}, options:{ plugins:{ legend:{ labels:{ color:'#9ca3af' }}}}});
     }
-    async function openJobEditor(row){
-      el('jobModalTitle').textContent=row?'Edit Job':'New Job';
-      await loadCompanyOptions();
-      el('jf_id').value=row?.id||'';
-      if(row){
-        el('jf_company_id').value=row.company_id||'';
-        el('jf_title').value=row.title||'';
-        el('jf_location').value=row.location||'';
-        el('jf_employment').value=row.employment||'full_time';
-        el('jf_is_remote').value = row.is_remote ? 'true':'false';
-        el('jf_status').value=row.status||'active';
-        el('jf_salary_min').value=row.salary_min??'';
-        el('jf_salary_max').value=row.salary_max??'';
-        el('jf_currency').value=row.currency||'';
-        el('jf_featured').checked=!!row.featured;
-      }else{
-        el('jobForm').reset(); el('jf_employment').value='full_time'; el('jf_status').value='active'; el('jf_is_remote').value='false'; el('jf_featured').checked=false;
+
+    // ---- JOBS CRUD ----
+    const PAGE_SIZE = 10; let page = 1, totalRows = 0;
+    function stateJobFilters(){ return { q: v('jobSearch'), status: document.getElementById('jobStatus').value, type: document.getElementById('jobType').value }; }
+    async function countJobs(filters){ let q = db.from('jobs').select('id', { count: 'exact', head: true }); if (filters.q){ q = q.or(`title.ilike.%${filters.q}%,company.ilike.%${filters.q}%`); } if (filters.status) q = q.eq('status', filters.status); if (filters.type) q = q.eq('type', filters.type); const { count, error } = await q; if (error){ console.error(error); return 0; } return count || 0; }
+    async function loadJobs(p=1){ const f = stateJobFilters(); totalRows = await countJobs(f); const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE)); page = Math.min(Math.max(1, p), totalPages); const from = (page-1)*PAGE_SIZE; const to = from + PAGE_SIZE - 1; let q = db.from('jobs').select('*').order('created_at',{ascending:false}).range(from, to); if (f.q){ q = q.or(`title.ilike.%${f.q}%,company.ilike.%${f.q}%`); } if (f.status) q = q.eq('status', f.status); if (f.type) q = q.eq('type', f.type); const { data, error } = await q; const tbody = document.getElementById('jobsTbody'); if (error){ console.error(error); tbody.innerHTML = `<tr><td colspan="7" class="empty">Failed to load jobs.</td></tr>`; return; } if (!data || !data.length){ tbody.innerHTML = `<tr><td colspan="7" class="empty">No jobs found.</td></tr>`; } else { tbody.innerHTML = data.map(j => { const sal = (j.salary_min||j.salary_max) ? `₹ ${fmtINR(j.salary_min)||''}${j.salary_max ? ' - ₹ '+fmtINR(j.salary_max):''}` : '-'; const statusClass = j.status==='active'?'ok':(j.status==='draft'?'draft':'closed'); return `<tr>
+            <td>${escapeHTML(j.title||'-')}</td>
+            <td>${escapeHTML(j.company||'-')}</td>
+            <td>${escapeHTML(j.location||'-')}</td>
+            <td>${escapeHTML(j.type||'-')}</td>
+            <td>${sal}</td>
+            <td><span class="pill ${statusClass}">${j.status||'-'}</span></td>
+            <td>
+              <button class="btn alt" data-edit="${j.id}">Edit</button>
+              <button class="btn warn" data-del="${j.id}">Delete</button>
+            </td>
+          </tr>`; }).join(''); } document.getElementById('jobsCount').textContent = `${totalRows} result${totalRows===1?'':'s'}`; document.getElementById('pageInfo').textContent = `${page} / ${Math.max(1, Math.ceil(totalRows/PAGE_SIZE))}`; tbody.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>openJobModal(b.dataset.edit)); tbody.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteJob(b.dataset.del)); }
+    document.getElementById('prevPage').onclick = ()=> loadJobs(page-1); document.getElementById('nextPage').onclick = ()=> loadJobs(page+1);
+    ['jobSearch','jobStatus','jobType'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', ()=> loadJobs(1)); el.addEventListener('change', ()=> loadJobs(1)); });
+    document.getElementById('topSearch').addEventListener('input', (e)=>{ const val=e.target.value; const active = document.querySelector('#nav a.active')?.dataset.target; if(active==='jobsSection'){ document.getElementById('jobSearch').value = val; loadJobs(1); } if(active==='employersSection'){ document.getElementById('empSearch').value = val; loadEmployers(1); } if(active==='applicationsSection'){ document.getElementById('appSearch').value = val; loadApplications(1); } });
+
+    const jobModal = document.getElementById('jobModal'); const modalTitle = document.getElementById('modalTitle'); const jobForm = document.getElementById('jobForm');
+    document.getElementById('addJobBtn').onclick = ()=> openJobModal(null);
+    document.getElementById('closeModal').onclick = ()=> show(jobModal,false);
+    document.getElementById('cancelJob').onclick = ()=> show(jobModal,false);
+    async function openJobModal(id){ jobForm.reset(); document.getElementById('job_id').value = id||''; modalTitle.textContent = id ? 'Edit Job' : 'Add Job'; if (id){ const { data, error } = await db.from('jobs').select('*').eq('id', id).single(); if (error){ toast('Failed to load job', false); return; } for (const k of ['title','company','location','type','salary_min','salary_max','status','description']){ const el = document.getElementById(k); if (el) el.value = data[k] ?? ''; } } show(jobModal,true); }
+    jobForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn = document.getElementById('saveJob'); btn.disabled = true; const payload = { title: v('title'), company: v('company'), location: v('location'), type: v('type'), salary_min: n('salary_min'), salary_max: n('salary_max'), status: v('status'), description: v('description') }; const id = v('job_id'); let res; if (id){ res = await db.from('jobs').update(payload).eq('id', id).select('id').single(); } else { res = await db.from('jobs').insert(payload).select('id').single(); } btn.disabled = false; if (res.error){ console.error(res.error); toast('Save failed', false); return; } show(jobModal,false); toast(id ? 'Job updated' : 'Job added'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); });
+    async function deleteJob(id){ if (!confirm('Delete this job?')) return; const { error } = await db.from('jobs').delete().eq('id', id); if (error){ toast('Delete failed', false); return; } toast('Job deleted'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); }
+
+    // ---- EMPLOYERS CRUD ----
+    const EMP_PAGE = 10; let empPage=1, empTotal=0;
+    function empFilters(){ return { q: v('empSearch'), verified: document.getElementById('empVerified').value }; }
+    async function countEmployers(f){ let q = db.from('employers').select('id',{count:'exact', head:true}); if (f.q){ q = q.or(`name.ilike.%${f.q}%,email.ilike.%${f.q}%`); } if (f.verified){ q = q.eq('verified', f.verified==='true'); } const { count, error } = await q; if (error){ console.error(error); return 0; } return count||0; }
+    async function loadEmployers(p=1){ const f = empFilters(); empTotal = await countEmployers(f); const pages = Math.max(1, Math.ceil(empTotal/EMP_PAGE)); empPage = Math.min(Math.max(1,p), pages); const from=(empPage-1)*EMP_PAGE, to=from+EMP_PAGE-1; let q = db.from('employers').select('*').order('created_at',{ascending:false}).range(from,to); if (f.q){ q = q.or(`name.ilike.%${f.q}%,email.ilike.%${f.q}%`); } if (f.verified){ q = q.eq('verified', f.verified==='true'); }
+      const { data, error } = await q; const tbody = document.getElementById('empTbody'); if (error){ console.error(error); tbody.innerHTML = `<tr><td colspan="6" class="empty">Failed to load employers.</td></tr>`; return; }
+      if (!data || !data.length){ tbody.innerHTML = `<tr><td colspan="6" class="empty">No employers found.</td></tr>`; }
+      else { tbody.innerHTML = data.map(e=>`<tr>
+          <td>${escapeHTML(e.name||'-')}</td>
+          <td>${escapeHTML(e.email||'-')}</td>
+          <td>${e.website?`<a href="${escapeHTML(e.website)}" target="_blank">${escapeHTML((e.website||'').replace(/^https?:\/\//,''))}</a>`:'—'}</td>
+          <td>${escapeHTML(e.phone||'—')}</td>
+          <td>${e.verified?'<span class="pill ok">Yes</span>':'<span class="pill draft">No</span>'}</td>
+          <td>
+            <button class="btn alt" data-emp-edit="${e.id}">Edit</button>
+            <button class="btn warn" data-emp-del="${e.id}">Delete</button>
+          </td>
+        </tr>`).join('');
       }
-      el('jobFormMsg').textContent='';
-      openModal();
+      document.getElementById('empCount').textContent = `${empTotal} employer${empTotal===1?'':'s'}`;
+      document.getElementById('empPageInfo').textContent = `${empPage} / ${pages}`;
+      tbody.querySelectorAll('button[data-emp-edit]').forEach(b=> b.onclick = ()=> openEmpModal(b.dataset.empEdit));
+      tbody.querySelectorAll('button[data-emp-del]').forEach(b=> b.onclick = ()=> deleteEmployer(b.dataset.empDel));
     }
-    async function saveJob(){
-      const id=el('jf_id').value, payload=getJobPayload(); el('jobFormMsg').textContent='Saving…';
-      let r; if(id) r=await sb.from('jobs').update(payload).eq('id',id).select('id').maybeSingle();
-      else r=await sb.from('jobs').insert([payload]).select('id').maybeSingle();
-      if(r.error){ el('jobFormMsg').innerHTML='<span class="error">'+r.error.message+'</span>'; return; }
-      el('jobFormMsg').textContent='Saved ✔';
-      await Promise.all([loadJobsTable(), loadCounts(), loadCharts()]);
-      setTimeout(()=>{ el('jobFormMsg').textContent=''; closeModal(); }, 400);
+    document.getElementById('empPrev').onclick = ()=> loadEmployers(empPage-1);
+    document.getElementById('empNext').onclick = ()=> loadEmployers(empPage+1);
+    ['empSearch','empVerified'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', ()=> loadEmployers(1)); el.addEventListener('change', ()=> loadEmployers(1)); });
+
+    const empModal = document.getElementById('empModal'); const empForm=document.getElementById('empForm');
+    document.getElementById('addEmpBtn').onclick = ()=> openEmpModal(null);
+    document.getElementById('closeEmpModal').onclick = ()=> show(empModal,false);
+    document.getElementById('cancelEmp').onclick = ()=> show(empModal,false);
+    async function openEmpModal(id){ empForm.reset(); document.getElementById('emp_id').value = id||''; document.getElementById('empModalTitle').textContent = id? 'Edit Employer' : 'Add Employer'; if (id){ const { data, error } = await db.from('employers').select('*').eq('id', id).single(); if (error){ toast('Failed to load employer', false); return; } document.getElementById('emp_name').value = data.name||''; document.getElementById('emp_email').value = data.email||''; document.getElementById('emp_website').value = data.website||''; document.getElementById('emp_phone').value = data.phone||''; document.getElementById('emp_verified').checked = !!data.verified; document.getElementById('emp_notes').value = data.notes||''; }
+      show(empModal,true);
     }
-    el('saveJob').onclick=saveJob;
+    empForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn = document.getElementById('saveEmp'); btn.disabled=true; const payload={ name:v('emp_name'), email:v('emp_email'), website:v('emp_website')||null, phone:v('emp_phone')||null, verified: document.getElementById('emp_verified').checked, notes: v('emp_notes')||null }; const id=v('emp_id'); let res; if(id){ res = await db.from('employers').update(payload).eq('id', id).select('id').single(); } else { res = await db.from('employers').insert(payload).select('id').single(); } btn.disabled=false; if(res.error){ console.error(res.error); toast('Save failed', false); return; } show(empModal,false); toast(id? 'Employer updated' : 'Employer added'); await Promise.all([loadEmployers(empPage), loadKPIsAndCharts()]); });
+    async function deleteEmployer(id){ if(!confirm('Delete this employer?')) return; const { error } = await db.from('employers').delete().eq('id', id); if(error){ toast('Delete failed', false); return; } toast('Employer deleted'); await Promise.all([loadEmployers(empPage), loadKPIsAndCharts()]); }
 
-    el('jobReload').onclick=()=>loadJobsTable();
-    ['jobStatus','jobEmployment'].forEach(id=> el(id).onchange=()=>loadJobsTable());
-    el('jobSearch').oninput=()=>loadJobsTable();
+    // ---- APPLICATIONS CRUD ----
+    const APPS_PAGE=10; let appsPage=1, appsTotal=0; let jobsCache=[]; async function refreshJobsCache(){ const { data, error } = await db.from('jobs').select('id,title,company').order('created_at',{ascending:false}); if(!error) jobsCache = data||[]; const jobFilter = document.getElementById('appJob'); jobFilter.innerHTML = `<option value="">All jobs</option>` + (jobsCache.map(j=>`<option value="${j.id}">${escapeHTML(j.title)} — ${escapeHTML(j.company||'')}</option>`).join('')); const jobSelect = document.getElementById('app_job_id'); jobSelect.innerHTML = jobsCache.map(j=>`<option value="${j.id}">${escapeHTML(j.title)} — ${escapeHTML(j.company||'')}</option>`).join(''); }
+    function appFilters(){ return { q: v('appSearch'), status: document.getElementById('appStatus').value, job: document.getElementById('appJob').value }; }
+    async function countApps(f){ let q = db.from('applications').select('id',{count:'exact', head:true}); if(f.q){ q = q.or(`candidate_name.ilike.%${f.q}%,candidate_email.ilike.%${f.q}%`); } if(f.status) q = q.eq('status', f.status); if(f.job) q = q.eq('job_id', f.job); const { count, error } = await q; if (error){ console.error(error); return 0; } return count||0; }
+    async function loadApplications(p=1){ const f = appFilters(); appsTotal = await countApps(f); const pages=Math.max(1, Math.ceil(appsTotal/APPS_PAGE)); appsPage = Math.min(Math.max(1,p), pages); const from=(appsPage-1)*APPS_PAGE, to=from+APPS_PAGE-1; let q = db.from('applications').select('*').order('created_at',{ascending:false}).range(from,to); if(f.q){ q = q.or(`candidate_name.ilike.%${f.q}%,candidate_email.ilike.%${f.q}%`); } if(f.status) q = q.eq('status', f.status); if(f.job) q = q.eq('job_id', f.job); const { data, error } = await q; const tbody = document.getElementById('appsTbody'); if(error){ console.error(error); tbody.innerHTML = `<tr><td colspan="6" class="empty">Failed to load applications.</td></tr>`; return; } if(!data || !data.length){ tbody.innerHTML = `<tr><td colspan="6" class="empty">No applications found.</td></tr>`; } else { const jobMap = Object.fromEntries(jobsCache.map(j=>[j.id, `${j.title} — ${j.company||''}`])); tbody.innerHTML = data.map(a=>`<tr>
+          <td>${escapeHTML(a.candidate_name||'-')}</td>
+          <td>${escapeHTML(a.candidate_email||'-')}</td>
+          <td>${escapeHTML(jobMap[a.job_id]||a.job_id)}</td>
+          <td><span class="pill ${statusPill(a.status)}">${escapeHTML(a.status||'-')}</span></td>
+          <td>${a.resume_url?`<a target="_blank" href="${escapeHTML(a.resume_url)}">Open</a>`:'—'}</td>
+          <td>
+            <button class="btn alt" data-app-edit="${a.id}">Edit</button>
+            <button class="btn warn" data-app-del="${a.id}">Delete</button>
+          </td>
+        </tr>`).join(''); }
+      document.getElementById('appsCount').textContent = `${appsTotal} application${appsTotal===1?'':'s'}`; document.getElementById('appsPageInfo').textContent = `${appsPage} / ${pages}`; tbody.querySelectorAll('button[data-app-edit]').forEach(b=> b.onclick = ()=> openAppModal(b.dataset.appEdit)); tbody.querySelectorAll('button[data-app-del]').forEach(b=> b.onclick = ()=> deleteApplication(b.dataset.appDel)); }
+    function statusPill(s){ return s==='hired'?'ok':(s==='rejected'?'closed':'draft'); }
+    document.getElementById('appsPrev').onclick = ()=> loadApplications(appsPage-1);
+    document.getElementById('appsNext').onclick = ()=> loadApplications(appsPage+1);
+    ['appSearch','appStatus','appJob'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', ()=> loadApplications(1)); el.addEventListener('change', ()=> loadApplications(1)); });
 
-    async function loadJobsTable(){
-      const jobs=await sb.from('jobs').select('id,company_id,title,location,employment,is_remote,status,featured,salary_min,salary_max,currency,created_at,companies(name)').order('created_at',{ascending:false}).limit(200);
-      if(jobs.error){ renderError('tbl_jobs', jobs.error.message); return; }
-      const filterS = el('jobStatus').value, filterE = el('jobEmployment').value, term = el('jobSearch').value.trim().toLowerCase();
-      let list = jobs.data||[];
-      if(filterS) list = list.filter(r=> (r.status||'')===filterS);
-      if(filterE) list = list.filter(r=> (r.employment||'')===filterE);
-      if(term) list = list.filter(r => (r.title||'').toLowerCase().includes(term) || (r.location||'').toLowerCase().includes(term) || (r.companies?.name||'').toLowerCase().includes(term));
-
-      renderTable('tbl_jobs', list, [
-        {key:'id',label:'ID'},
-        {label:'Title', render:r=> `<div><strong>${r.title||''}</strong><div class="muted" style="font-size:12px">${r.companies?.name||''}</div></div>`},
-        {label:'Meta', render:r=> `<span class="pill">${(r.employment||'').replace('_',' ')}</span> ${r.is_remote?'<span class="pill">Remote</span>':''} ${r.featured?'<span class="pill">★ Featured</span>':''}`},
-        {key:'location',label:'Location'},
-        {label:'Salary', render:r=> [r.currency||'', r.salary_min??'', r.salary_max?('-'+r.salary_max):''].join(' ').trim()},
-        {key:'status',label:'Status'},
-        {key:'created_at',label:'Created'},
-        {label:'Actions', render:r=>`
-          <div class="row">
-            <button class="btn sm ghost" data-edit="${r.id}">Edit</button>
-            <button class="btn sm ghost" data-feat="${r.id}">${r.featured?'Unfeature':'Feature'}</button>
-            <button class="btn sm ghost" data-stat="${r.id}">${r.status==='active'?'Close':'Open'}</button>
-            <button class="btn sm" data-del="${r.id}">Delete</button>
-          </div>`}
-      ]);
-
-      const host=el('tbl_jobs');
-      host.querySelectorAll('[data-edit]').forEach(b=> b.onclick=()=> openJobEditor(list.find(x=>x.id===b.getAttribute('data-edit'))));
-      host.querySelectorAll('[data-feat]').forEach(b=> b.onclick=async ()=>{ const id=b.getAttribute('data-feat'); const row=list.find(x=>x.id===id); const u=await sb.from('jobs').update({featured:!row.featured}).eq('id',id); if(u.error) alert(u.error.message); await Promise.all([loadJobsTable(), loadCounts(), loadCharts()]); });
-      host.querySelectorAll('[data-stat]').forEach(b=> b.onclick=async ()=>{ const id=b.getAttribute('data-stat'); const row=list.find(x=>x.id===id); const next=row.status==='active'?'closed':'active'; const u=await sb.from('jobs').update({status:next}).eq('id',id); if(u.error) alert(u.error.message); await Promise.all([loadJobsTable(), loadCounts(), loadCharts()]); });
-      host.querySelectorAll('[data-del]').forEach(b=> b.onclick=async ()=>{ if(!confirm('Delete this job?')) return; const id=b.getAttribute('data-del'); const d=await sb.from('jobs').delete().eq('id',id); if(d.error) alert(d.error.message); await Promise.all([loadJobsTable(), loadCounts(), loadCharts()]); });
+    const appModal=document.getElementById('appModal'); const appForm=document.getElementById('appForm');
+    document.getElementById('addAppBtn').onclick = ()=> openAppModal(null);
+    document.getElementById('closeAppModal').onclick = ()=> show(appModal,false);
+    document.getElementById('cancelApp').onclick = ()=> show(appModal,false);
+    async function openAppModal(id){ appForm.reset(); document.getElementById('app_id').value = id||''; document.getElementById('appModalTitle').textContent = id? 'Edit Application' : 'Add Application'; if(id){ const { data, error } = await db.from('applications').select('*').eq('id', id).single(); if(error){ toast('Failed to load application', false); return; } document.getElementById('app_job_id').value = data.job_id; document.getElementById('app_name').value = data.candidate_name||''; document.getElementById('app_email').value = data.candidate_email||''; document.getElementById('app_resume').value = data.resume_url||''; document.getElementById('app_status').value = data.status||'submitted'; }
+      show(appModal,true);
     }
+    appForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn=document.getElementById('saveApp'); btn.disabled=true; const payload={ job_id: document.getElementById('app_job_id').value, candidate_name: v('app_name'), candidate_email: v('app_email'), resume_url: v('app_resume')||null, status: document.getElementById('app_status').value }; const id=v('app_id'); let res; if(id){ res = await db.from('applications').update(payload).eq('id', id).select('id').single(); } else { res = await db.from('applications').insert(payload).select('id').single(); } btn.disabled=false; if(res.error){ console.error(res.error); toast('Save failed', false); return; } show(appModal,false); toast(id? 'Application updated' : 'Application added'); await Promise.all([loadApplications(appsPage), loadKPIsAndCharts()]); });
+    async function deleteApplication(id){ if(!confirm('Delete this application?')) return; const { error } = await db.from('applications').delete().eq('id', id); if(error){ toast('Delete failed', false); return; } toast('Application deleted'); await Promise.all([loadApplications(appsPage), loadKPIsAndCharts()]); }
 
-    // ---------------- APPLICATIONS ----------------
-    async function loadApplications(){
-      const a=await sb.from('applications').select('id,job_id,applicant_id,status,created_at').order('created_at',{ascending:false}).limit(200);
-      if(a.error){ renderError('tbl_apps', a.error.message); return; }
-      const jobIds=[...new Set((a.data||[]).map(x=>x.job_id))];
-      const userIds=[...new Set((a.data||[]).map(x=>x.applicant_id))];
-      const [j,p]=await Promise.all([
-        jobIds.length? sb.from('jobs').select('id,title,companies(name)').in('id',jobIds):{data:[]},
-        userIds.length? sb.from('profiles').select('id,full_name,email').in('id',userIds):{data:[]}
-      ]);
-      const jobMap=new Map((j.data||[]).map(r=>[r.id,r]));
-      const userMap=new Map((p.data||[]).map(r=>[r.id,r]));
-      const opts=['pending','reviewed','shortlisted','hired','rejected'];
-
-      renderTable('tbl_apps', a.data||[], [
-        {label:'Job', render:r=>`${jobMap.get(r.job_id)?.title||'(Job)'} — ${jobMap.get(r.job_id)?.companies?.name||''}`},
-        {label:'Applicant', render:r=>{ const u=userMap.get(r.applicant_id)||{}; return `${u.full_name||''} ${u.email?('('+u.email+')'):''}`; }},
-        {label:'Status', render:r=>`<select data-app="${r.id}">${opts.map(o=>`<option value="${o}" ${o===r.status?'selected':''}>${o}</option>`).join('')}</select>`},
-        {key:'created_at',label:'Applied'},
-        {label:'', render:r=>`<button class="btn sm ghost" data-delapp="${r.id}">Delete</button>`}
-      ]);
-
-      const host=el('tbl_apps');
-      host.querySelectorAll('select[data-app]').forEach(sel=> sel.onchange=async()=>{ const id=sel.getAttribute('data-app'); const v=sel.value; const r=await sb.from('applications').update({status:v}).eq('id',id); if(r.error) alert(r.error.message); else loadCounts(); });
-      host.querySelectorAll('[data-delapp]').forEach(b=> b.onclick=async()=>{ if(!confirm('Delete this application?')) return; const id=b.getAttribute('data-delapp'); const r=await sb.from('applications').delete().eq('id',id); if(r.error) alert(r.error.message); await Promise.all([loadApplications(), loadCounts(), loadCharts()]); });
-    }
-
-    // ---------------- PROFILES ----------------
-    async function loadProfiles(){
-      const r=await sb.from('profiles').select('id,full_name,email,role,created_at').order('created_at',{ascending:false}).limit(200);
-      if(r.error){ renderError('tbl_profiles', r.error.message); return; }
-      const roleOpts=['user','admin','super_admin'];
-      renderTable('tbl_profiles', r.data||[], [
-        {key:'id',label:'ID'},{key:'full_name',label:'Name'},{key:'email',label:'Email'},
-        {label:'Role', render:x=>`<select data-prof="${x.id}">${roleOpts.map(o=>`<option value="${o}" ${String(x.role||'').toLowerCase()===o?'selected':''}>${o}</option>`).join('')}</select>`},
-        {key:'created_at',label:'Created'}
-      ]);
-      el('tbl_profiles').querySelectorAll('select[data-prof]').forEach(sel=> sel.onchange=async()=>{ const id=sel.getAttribute('data-prof'); const v=sel.value; const u=await sb.from('profiles').update({role:v}).eq('id',id); if(u.error) alert(u.error.message); else alert('Updated ✔'); });
-    }
-
-    // Boot
-    await Promise.all([loadCounts(), loadCharts(), loadCompaniesTable(), loadJobsTable(), loadApplications(), loadProfiles()]);
-  });
+    // ---- Init ----
+    (async function init(){
+      await guard();
+      await refreshJobsCache();
+      await Promise.all([loadKPIsAndCharts(), loadJobs(1), loadEmployers(1), loadApplications(1)]);
+      // initial route
+      const key = (location.hash||'#dashboard').replace('#','');
+      const map = { dashboard:'dashboardSection', jobs:'jobsSection', employers:'employersSection', applications:'applicationsSection' };
+      showSection(map[key]||'dashboardSection');
+    })();
   </script>
 </body>
 </html>
