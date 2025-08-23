@@ -9,9 +9,14 @@
     h1{margin:0 0 8px}
     .muted{color:#666;margin:0 0 24px}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:16px}
     .card h2{font-size:16px;margin:0;padding:12px 16px;border-bottom:1px solid #eee}
     .pad{padding:12px 16px}
+    label{display:block;font-size:12px;color:#555;margin:8px 0 4px}
+    input,select{width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;font:inherit;background:#fff}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#111;color:#fff;cursor:pointer}
+    .btn.ghost{background:#fff;color:#111}
     table{width:100%;border-collapse:collapse}
     th,td{font-size:14px;padding:8px 10px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
     th{background:#fafafa}
@@ -23,14 +28,14 @@
     .link{color:#2563eb;text-decoration:none}
     .link:hover{text-decoration:underline}
     .error{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px}
-    @media (max-width:900px){.grid{grid-template-columns:1fr}.count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:1000px){.grid{grid-template-columns:1fr}.count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>
 </head>
 <body>
   <div class="toolbar">
     <div>
       <h1>Admin</h1>
-      <p class="muted">Private reports & raw tables (read-only)</p>
+      <p class="muted">Private reports & raw tables (read-only) + Jobs manager</p>
     </div>
     <div><a class="link" href="/">← Back to site</a></div>
   </div>
@@ -47,6 +52,39 @@
     <div class="pill"><div class="label">Reviewed apps</div>     <div class="num" id="c_reviewed_apps">–</div></div>
     <div class="pill"><div class="label">Shortlisted apps</div>  <div class="num" id="c_shortlisted_apps">–</div></div>
     <div class="pill"><div class="label">Hired apps</div>        <div class="num" id="c_hired_apps">–</div></div>
+  </div>
+
+  <!-- Jobs manager (complete CRUD actions for admin) -->
+  <div class="card">
+    <h2>Manage Jobs</h2>
+    <div class="pad">
+      <form id="jobForm" class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+        <div><label>Company</label><select id="f_company"></select></div>
+        <div><label>Title</label><input id="f_title" placeholder="e.g. Junior Frontend Developer"></div>
+        <div><label>Location</label><input id="f_location" placeholder="e.g. Remote / Bengaluru"></div>
+        <div>
+          <label>Employment</label>
+          <select id="f_employment">
+            <option value="full_time">full_time</option>
+            <option value="part_time">part_time</option>
+            <option value="contract">contract</option>
+            <option value="internship">internship</option>
+          </select>
+        </div>
+        <div><label>Remote?</label>
+          <select id="f_remote"><option value="true">Yes</option><option value="false">No</option></select>
+        </div>
+        <div class="row" style="gap:12px">
+          <div style="flex:1"><label>Salary min</label><input id="f_sal_min" type="number" min="0" step="1"></div>
+          <div style="flex:1"><label>Salary max</label><input id="f_sal_max" type="number" min="0" step="1"></div>
+          <div style="flex:1"><label>Currency</label><input id="f_currency" placeholder="INR"></div>
+        </div>
+        <div class="row" style="align-items:flex-end;gap:12px">
+          <button class="btn" type="submit">Create job</button>
+          <span id="jobFormMsg" class="muted"></span>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div class="grid">
@@ -68,28 +106,31 @@
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Scripts in order -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
-
   <script>
-    // Guard using role from profiles.role via app.js helpers
-    async function guardAndLoad() {
-      const { data: { user } } = await sb.supabase.auth.getUser();
-      if (!user) { location.href = '/'; return; }
+    // --- Robust client: use window.sb.supabase if available, else create our own
+    const client = (window.sb && window.sb.supabase)
+      ? window.sb.supabase
+      : window.supabase.createClient(
+          window.__SUPABASE_URL__,
+          window.__SUPABASE_ANON_KEY__,
+          { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } }
+        );
 
-      const isAdmin = await sbAuth.isAdmin();
-      if (!isAdmin) { location.href = '/'; return; }
-
-      await Promise.all([loadCounts(), loadTables()]);
+    // isAdmin(): use sbAuth if present, else local check
+    async function isAdmin(){
+      if (window.sbAuth && typeof window.sbAuth.isAdmin === 'function') {
+        return window.sbAuth.isAdmin();
+      }
+      const { data: { user } } = await client.auth.getUser();
+      if (!user) return false;
+      const r = await client.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (r.error) { console.error(r.error); return false; }
+      return ['admin','super_admin'].includes(String(r.data?.role||'').toLowerCase());
     }
-
-    sb.supabase.auth.onAuthStateChange(async (_e, session) => {
-      if (!session?.user) { location.href = '/'; return; }
-      const isAdmin = await sbAuth.isAdmin();
-      if (!isAdmin) { location.href = '/'; }
-    });
 
     // Helpers
     const el = id => document.getElementById(id);
@@ -107,14 +148,24 @@
       host.innerHTML = `<table>${thead}${tbody}</table>`;
     }
 
+    // Guard
+    async function guardAndLoad(){
+      const { data: { user } } = await client.auth.getUser();
+      if (!user) { location.href = '/'; return; }
+      if (!(await isAdmin())) { location.href = '/'; return; }
+
+      // Load all
+      await Promise.all([loadCounts(), loadTables(), initJobsManager()]);
+    }
+    client.auth.onAuthStateChange(async (_e, session) => {
+      if (!session?.user) { location.href = '/'; return; }
+      if (!(await isAdmin())) { location.href = '/'; }
+    });
+
     // Counts
     async function loadCounts(){
-      const r = await sb.supabase.from('v_admin_counts').select('*').maybeSingle();
-      if (r.error){
-        console.error('v_admin_counts error:', r.error);
-        renderError('counts', r.error.message || 'Failed to load counts');
-        return;
-      }
+      const r = await client.from('v_admin_counts').select('*').maybeSingle();
+      if (r.error){ renderError('counts', r.error.message); return; }
       const data = r.data || {};
       for (const k of Object.keys(data)){
         const t = el('c_' + k);
@@ -122,35 +173,69 @@
       }
     }
 
-    // Tables
+    // Tables (read)
     async function loadTables(){
       // Jobs
-      let r = await sb.supabase
+      let r = await client
         .from('v_job_public')
         .select('id,title,company_name,location,status,featured,created_at')
-        .order('created_at', { ascending:false })
+        .order('created_at',{ascending:false})
         .limit(25);
-      if (r.error){
-        console.error('jobs error:', r.error);
-        renderError('tbl_jobs', r.error.message);
-      } else {
-        renderTable('tbl_jobs', r.data, [
+      if (r.error){ renderError('tbl_jobs', r.error.message); }
+      else {
+        // add action buttons
+        const rows = (r.data||[]).map(x => ({
+          ...x,
+          actions: `
+            <button class="btn ghost" data-act="toggleStatus" data-id="${x.id}">${x.status==='active'?'Close':'Open'}</button>
+            <button class="btn ghost" data-act="toggleFeatured" data-id="${x.id}">${x.featured?'Unfeature':'Feature'}</button>
+            <button class="btn ghost" data-act="delete" data-id="${x.id}">Delete</button>
+          `
+        }));
+        const host = el('tbl_jobs');
+        renderTable('tbl_jobs', rows, [
           {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
           {key:'location',label:'Location'}, {key:'status',label:'Status'},
-          {key:'featured',label:'Featured'}, {key:'created_at',label:'Created'}
+          {key:'featured',label:'Featured'}, {key:'created_at',label:'Created'},
+          {key:'actions',label:'Actions'}
         ]);
+        // wire actions
+        host.querySelectorAll('[data-act]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            const id = btn.getAttribute('data-id');
+            const act = btn.getAttribute('data-act');
+            if (act==='delete'){
+              if (!confirm('Delete this job?')) return;
+              const d = await client.from('jobs').delete().eq('id', id);
+              if (d.error) alert(d.error.message);
+              await Promise.all([loadCounts(), loadTables()]);
+              return;
+            }
+            if (act==='toggleStatus'){
+              const cur = rows.find(r=>r.id===id)?.status || 'active';
+              const next = cur==='active' ? 'closed' : 'active';
+              const u = await client.from('jobs').update({status:next}).eq('id', id);
+              if (u.error) alert(u.error.message);
+              await Promise.all([loadCounts(), loadTables()]);
+              return;
+            }
+            if (act==='toggleFeatured'){
+              const cur = rows.find(r=>r.id===id)?.featured || false;
+              const u = await client.from('jobs').update({featured:!cur}).eq('id', id);
+              if (u.error) alert(u.error.message);
+              await Promise.all([loadCounts(), loadTables()]);
+              return;
+            }
+          });
+        });
       }
 
       // Applications
-      r = await sb.supabase
-        .from('applications')
+      r = await client.from('applications')
         .select('id,job_id,applicant_id,status,created_at')
-        .order('created_at',{ascending:false})
-        .limit(25);
-      if (r.error){
-        console.error('applications error:', r.error);
-        renderError('tbl_apps', r.error.message);
-      } else {
+        .order('created_at',{ascending:false}).limit(25);
+      if (r.error){ renderError('tbl_apps', r.error.message); }
+      else {
         renderTable('tbl_apps', r.data, [
           {key:'id',label:'ID'}, {key:'job_id',label:'Job'}, {key:'applicant_id',label:'Applicant'},
           {key:'status',label:'Status'}, {key:'created_at',label:'Applied'}
@@ -158,32 +243,23 @@
       }
 
       // Companies
-      r = await sb.supabase
-        .from('companies')
+      r = await client.from('companies')
         .select('id,name,website,owner_id,created_at')
-        .order('created_at',{ascending:false})
-        .limit(25);
-      if (r.error){
-        console.error('companies error:', r.error);
-        renderError('tbl_companies', r.error.message);
-      } else {
+        .order('created_at',{ascending:false}).limit(25);
+      if (r.error){ renderError('tbl_companies', r.error.message); }
+      else {
         renderTable('tbl_companies', r.data, [
           {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
           {key:'owner_id',label:'Owner'}, {key:'created_at',label:'Created'}
         ]);
       }
 
-      // Accounts (profiles)
-      r = await sb.supabase
-        .from('profiles')
+      // Profiles
+      r = await client.from('profiles')
         .select('id,full_name,email,role,created_at')
-        .order('created_at',{ascending:false})
-        .limit(25);
-      if (r.error){
-        console.error('profiles error:', r.error);
-        renderError('tbl_profiles', r.error.message);
-      } else {
-        // cast enum/txt safely
+        .order('created_at',{ascending:false}).limit(25);
+      if (r.error){ renderError('tbl_profiles', r.error.message); }
+      else {
         const rows = (r.data||[]).map(x => ({...x, role: (x.role||'').toString()}));
         renderTable('tbl_profiles', rows, [
           {key:'id',label:'ID'}, {key:'full_name',label:'Name'}, {key:'email',label:'Email'},
@@ -192,7 +268,51 @@
       }
     }
 
-    // Kick off
+    // Jobs manager (create)
+    async function initJobsManager(){
+      await loadCompanyOptions();
+      el('jobForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const msg = el('jobFormMsg');
+        msg.textContent = 'Creating…';
+
+        const company_id = el('f_company').value;
+        const title      = el('f_title').value.trim();
+        const location   = el('f_location').value.trim();
+        const employment = el('f_employment').value;
+        const is_remote  = el('f_remote').value === 'true';
+        const salary_min = el('f_sal_min').value ? Number(el('f_sal_min').value) : null;
+        const salary_max = el('f_sal_max').value ? Number(el('f_sal_max').value) : null;
+        const currency   = el('f_currency').value.trim() || null;
+
+        if (!company_id || !title){
+          msg.textContent = 'Company and Title are required.';
+          return;
+        }
+
+        const r = await client.from('jobs').insert([{
+          company_id, title, location, employment, is_remote, salary_min, salary_max, currency, status:'active', featured:false
+        }]).select('id').single();
+
+        if (r.error){
+          msg.textContent = 'Error: ' + r.error.message;
+        }else{
+          msg.textContent = 'Created ✔';
+          el('f_title').value=''; el('f_location').value=''; el('f_sal_min').value=''; el('f_sal_max').value=''; el('f_currency').value='';
+          await Promise.all([loadCounts(), loadTables()]);
+          setTimeout(()=>{ msg.textContent=''; },1500);
+        }
+      });
+    }
+
+    async function loadCompanyOptions(){
+      const sel = el('f_company'); sel.innerHTML = '<option value="">Loading…</option>';
+      const r = await client.from('companies').select('id,name').order('name');
+      if (r.error){ sel.innerHTML = '<option value="">(error loading companies)</option>'; return; }
+      sel.innerHTML = r.data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
+    // Start
     guardAndLoad();
   </script>
 </body>
