@@ -117,10 +117,10 @@
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+ <!-- Scripts (cache-busted) -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js?v=3"></script>
+<script src="app.js?v=3"></script>
   <script>
     // Robust client: use window.sb.supabase if present; else create our own.
     const client = (window.sb && window.sb.supabase)
