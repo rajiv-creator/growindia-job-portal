@@ -32,7 +32,9 @@ window.sbAuth = {
     const email = prompt('Enter your email to receive a magic link:');
     if (!email) return;
 
-    const redirectTo = (window.__SITE_URL__ || window.location.origin) + '/dashboard.html';
+    // 🔁 route via post-auth.html (decides admin vs user)
+    const redirectTo = (window.__SITE_URL__ || window.location.origin) + '/post-auth.html';
+
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo }
@@ -92,5 +94,5 @@ window.goToDashboard = async function goToDashboard(){
 
 // Optional: pages can react to auth changes if needed
 supabase.auth.onAuthStateChange((_event, _session) => {
-  // no-op by default
+  // no-op
 });
