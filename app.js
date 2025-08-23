@@ -15,17 +15,18 @@ const supabase = window.supabase.createClient(
   }
 );
 
-// --- Single place to manage admins (keep in sync if you change) ---
-const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
+// Roles that count as admin
+const ADMIN_ROLES = ['admin', 'super_admin'];
 
 // Expose a tiny helper namespace
 window.sb = {
   supabase,
-  ADMIN_EMAILS,
-  isAdminEmail(email){ return !!email && ADMIN_EMAILS.includes(String(email).toLowerCase()); }
+  ADMIN_ROLES
 };
 
-// --- Auth helpers used by index.html buttons ---
+// --- Auth helpers used by pages ---
+const roleCache = new Map(); // userId -> role
+
 window.sbAuth = {
   async openLogin(){
     const email = prompt('Enter your email to receive a magic link:');
@@ -45,7 +46,6 @@ window.sbAuth = {
 
   async signOut(){
     await supabase.auth.signOut();
-    // Hard reload so any guards/UI update immediately
     window.location.reload();
   },
 
@@ -53,6 +53,28 @@ window.sbAuth = {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) return null;
     return user || null;
+  },
+
+  async getRole(userId){
+    if (!userId) return null;
+    if (roleCache.has(userId)) return roleCache.get(userId);
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const role = error ? null : (data?.role || null);
+    roleCache.set(userId, role);
+    return role;
+  },
+
+  async isAdmin(){
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const role = await this.getRole(user.id);
+    return ADMIN_ROLES.includes(String(role || '').toLowerCase());
   }
 };
 
@@ -61,19 +83,14 @@ window.goToDashboard = async function goToDashboard(){
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    // If not logged in, start login flow
     return window.sbAuth.openLogin();
   }
 
-  const email = (user.email || '').toLowerCase();
-  if (window.sb.isAdminEmail(email)) {
-    window.location.href = '/admin.html';
-  } else {
-    window.location.href = '/dashboard.html';
-  }
+  const isAdmin = await window.sbAuth.isAdmin();
+  window.location.href = isAdmin ? '/admin.html' : '/dashboard.html';
 };
 
-// Optional: small convenience so pages can react to auth changes if needed
+// Optional: pages can react to auth changes if needed
 supabase.auth.onAuthStateChange((_event, _session) => {
-  // no-op by default; index.html refreshes its buttons on load
+  // no-op by default
 });
