@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>GrowIndia — Dashboard</title>
   <link rel="stylesheet" href="styles.css"/>
+  <link rel="icon" href="favicon.ico">
 </head>
 <body>
 <nav>
@@ -28,16 +29,16 @@
 
 <footer>© GrowIndia</footer>
 
-<!-- Scripts -->
+<!-- Scripts (order matters) -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="config.js?v=8"></script>
+<script src="app.js?v=8"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const logoutBtn = document.getElementById('logoutBtn');
   const welcomeEl = document.getElementById('welcome');
-  const appsEl = document.getElementById('apps');
+  const appsEl    = document.getElementById('apps');
 
   logoutBtn.addEventListener('click', () => sbAuth.signOut());
 
@@ -66,10 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const { data: { user } } = await sb.supabase.auth.getUser();
     if (!user) return;
 
-    // Upsert-like: try insert; on conflict (job_id, applicant_id) do nothing
+    // Try insert; if duplicate (job_id, applicant_id), ignore.
     const { error } = await sb.supabase
       .from('applications')
       .insert([{ job_id: jobId, applicant_id: user.id }]);
+
     if (error && !/duplicate key value/i.test(error.message)) {
       alert('Could not submit application: ' + error.message);
     } else {
@@ -81,25 +83,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const { data: { user } } = await sb.supabase.auth.getUser();
     if (!user){ appsEl.textContent = 'Please log in.'; return; }
 
-    // Join apps → jobs (client-side join)
+    // Only MY applications
     const a = await sb.supabase
       .from('applications')
       .select('id, job_id, status, created_at')
+      .eq('applicant_id', user.id)
       .order('created_at',{ascending:false});
 
-    if (a.error){ appsEl.innerHTML = '<em>Error loading applications</em>'; return; }
+    if (a.error){
+      appsEl.innerHTML = '<em>Error loading applications: ' + (a.error.message || '') + '</em>';
+      return;
+    }
 
     if (!a.data || a.data.length === 0){
       appsEl.innerHTML = '<em>No applications yet.</em>';
       return;
     }
 
-    // Fetch the jobs for labels (batch fetch)
+    // Fetch job labels
     const jobIds = [...new Set(a.data.map(x => x.job_id))];
-    const j = await sb.supabase
+
+    // 1) Try the public view (preferred)
+    let j = await sb.supabase
       .from('v_job_public')
       .select('id,title,company_name')
       .in('id', jobIds);
+
+    // 2) Fallback to base tables if the view isn't there
+    if (j.error){
+      j = await sb.supabase
+        .from('jobs')
+        .select('id,title,companies(name)')
+        .in('id', jobIds);
+      if (!j.error){
+        j.data = (j.data || []).map(row => ({
+          id: row.id,
+          title: row.title,
+          company_name: row.companies?.name || ''
+        }));
+      }
+    }
 
     const jobMap = new Map((j.data||[]).map(r => [r.id, r]));
 
