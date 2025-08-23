@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>GrowIndia Jobs</title>
   <link rel="stylesheet" href="styles.css"/>
+  <link rel="icon" href="favicon.ico">
 </head>
 <body>
 <nav>
   <div class="brand">GrowIndia Jobs</div>
   <div class="row">
     <!-- Sends admins to /admin.html and everyone else to /dashboard.html -->
-    <a href="#" onclick="goToDashboard(); return false;">Dashboard</a>
+    <a href="#" id="dashLink">Dashboard</a>
 
-    <!-- Buttons are wired below via JS (no inline handlers to avoid conflicts) -->
+    <!-- Buttons wired below via JS -->
     <button id="loginBtn" class="btn">Login / Sign up</button>
     <button id="logoutBtn" class="btn ghost" hidden>Logout</button>
   </div>
@@ -24,7 +25,10 @@
 
   <div class="card">
     <div class="grid">
-      <div><label for="q">Search</label><input id="q" placeholder="Title or company"/></div>
+      <div>
+        <label for="q">Search</label>
+        <input id="q" placeholder="Title or company"/>
+      </div>
       <div>
         <label for="emp">Employment</label>
         <select id="emp">
@@ -51,21 +55,23 @@
 
 <footer>© GrowIndia</footer>
 
-<!-- Load scripts ONCE in the correct order -->
+<!-- Load scripts ONCE in this order -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="config.js?v=8"></script>
+<script src="app.js?v=8"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const jobsEl   = document.getElementById('jobs');
-  const qEl      = document.getElementById('q');
-  const empEl    = document.getElementById('emp');
-  const remEl    = document.getElementById('rem');
-  const loginBtn = document.getElementById('loginBtn');
-  const logoutBtn= document.getElementById('logoutBtn');
+  const jobsEl    = document.getElementById('jobs');
+  const qEl       = document.getElementById('q');
+  const empEl     = document.getElementById('emp');
+  const remEl     = document.getElementById('rem');
+  const loginBtn  = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const dashLink  = document.getElementById('dashLink');
 
-  // Hook auth buttons to helpers from app.js
+  // Nav & auth buttons
+  dashLink.addEventListener('click', (e) => { e.preventDefault(); goToDashboard(); });
   loginBtn.addEventListener('click', () => sbAuth.openLogin());
   logoutBtn.addEventListener('click', () => sbAuth.signOut());
 
@@ -74,9 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const u = await sbAuth.currentUser();
       loginBtn.hidden  = !!u;
       logoutBtn.hidden = !u;
-    }catch(_e){
-      // If auth helper isn't ready yet, keep default
-    }
+    }catch(_e){ /* ignore */ }
   }
 
   async function loadJobs(){
@@ -151,8 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Filter listeners (right events for inputs/selects)
-  qEl.addEventListener('input', loadJobs);
+  // Filters
+  qEl.addEventListener('input',  loadJobs);
   empEl.addEventListener('change', loadJobs);
   remEl.addEventListener('change', loadJobs);
 
