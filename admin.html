@@ -73,19 +73,35 @@
   <script src="app.js"></script>
 
   <script>
-    // Use the SAME allow-list here and in app.js
-    const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
+    // --- Reuse allow-list & helpers from app.js ---
+    const isAdminEmail = (email) => {
+      if (window.sb && typeof window.sb.isAdminEmail === 'function') {
+        return window.sb.isAdminEmail(email);
+      }
+      // Fallback if app.js didn't load for some reason
+      const fallback = ['rajiv.growindia1@gmail.com'];
+      const e = String(email || '').toLowerCase();
+      return fallback.map(x => x.toLowerCase()).includes(e);
+    };
 
-    // Guard the page early
-    sb.supabase.auth.onAuthStateChange((_e, session) => {
-      const email = session?.user?.email || '';
-      if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
-    });
-    (async () => {
+    // --- Guard early (no flicker), then load data only for admins ---
+    async function guardAndLoad() {
       const { data: { user } } = await sb.supabase.auth.getUser();
-      const email = user?.email || '';
-      if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
-    })();
+      const email = (user?.email || '').toLowerCase();
+
+      if (!isAdminEmail(email)) {
+        location.href = '/';
+        return;
+      }
+
+      // Only admins reach here → load counts & tables
+      await Promise.all([loadCounts(), loadTables()]);
+    }
+
+    sb.supabase.auth.onAuthStateChange((_e, session) => {
+      const email = (session?.user?.email || '').toLowerCase();
+      if (!isAdminEmail(email)) location.href = '/';
+    });
 
     // Helpers
     function el(id){ return document.getElementById(id); }
@@ -165,8 +181,8 @@
       }
     }
 
-    loadCounts();
-    loadTables();
+    // Kick off
+    guardAndLoad();
   </script>
 </body>
 </html>
