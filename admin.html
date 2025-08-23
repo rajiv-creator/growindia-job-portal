@@ -67,27 +67,27 @@
     </div>
   </div>
 
-  <!-- Load scripts (keep this ORDER) -->
-  <script src="config.js"></script>
+  <!-- Scripts loaded ONCE in correct order -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 
-  <!-- Admin allow-list guard + loaders -->
   <script>
-    // 1) SAME allow-list here and in app.js
+    // Use the SAME allow-list here and in app.js
     const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
 
-    // 2) Guard the page (kicks non-admins away)
-    supabase.auth.onAuthStateChange(async (_e, session) => {
-      const email = session?.user?.email;
+    // Guard the page early
+    sb.supabase.auth.onAuthStateChange((_e, session) => {
+      const email = session?.user?.email || '';
       if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
     });
-    (async () => { // immediate check on first paint (no flicker)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !ADMIN_EMAILS.includes(user.email)) location.href = '/';
+    (async () => {
+      const { data: { user } } = await sb.supabase.auth.getUser();
+      const email = user?.email || '';
+      if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
     })();
 
-    // --- tiny helpers
+    // Helpers
     function el(id){ return document.getElementById(id); }
     function renderTable(targetId, rows, columns){
       const host = el(targetId);
@@ -99,22 +99,24 @@
       host.innerHTML = `<table>${thead}${tbody}</table>`;
     }
 
-    // --- fetch & render counts (from v_admin_counts)
+    // Counts from view v_admin_counts
     async function loadCounts(){
-      const { data, error } = await supabase.from('v_admin_counts').select('*').single();
+      const { data, error } = await sb.supabase.from('v_admin_counts').select('*').single();
       if (error){ console.error(error); return; }
       for (const k of Object.keys(data)){
-        const target = document.getElementById('c_' + k);
+        const target = el('c_' + k);
         if (target) target.textContent = data[k];
       }
     }
 
-    // --- fetch four tables (views)
+    // Tables
     async function loadTables(){
       // Jobs
-      let r = await supabase.from('v_job_public')
+      let r = await sb.supabase
+        .from('v_job_public')
         .select('id,title,company_name,location,status,featured,created_at')
-        .order('created_at', { ascending:false }).limit(25);
+        .order('created_at', { ascending:false })
+        .limit(25);
       if (!r.error){
         renderTable('tbl_jobs', r.data, [
           {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
@@ -124,8 +126,11 @@
       }
 
       // Applications
-      r = await supabase.from('applications')
-        .select('id,job_id,applicant_id,status,created_at').order('created_at',{ascending:false}).limit(25);
+      r = await sb.supabase
+        .from('applications')
+        .select('id,job_id,applicant_id,status,created_at')
+        .order('created_at',{ascending:false})
+        .limit(25);
       if (!r.error){
         renderTable('tbl_apps', r.data, [
           {key:'id',label:'ID'}, {key:'job_id',label:'Job'}, {key:'applicant_id',label:'Applicant'},
@@ -134,8 +139,11 @@
       }
 
       // Companies
-      r = await supabase.from('companies')
-        .select('id,name,website,owner_id,created_at').order('created_at',{ascending:false}).limit(25);
+      r = await sb.supabase
+        .from('companies')
+        .select('id,name,website,owner_id,created_at')
+        .order('created_at',{ascending:false})
+        .limit(25);
       if (!r.error){
         renderTable('tbl_companies', r.data, [
           {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
@@ -144,8 +152,11 @@
       }
 
       // Accounts (profiles)
-      r = await supabase.from('profiles')
-        .select('id,full_name,email,role,created_at').order('created_at',{ascending:false}).limit(25);
+      r = await sb.supabase
+        .from('profiles')
+        .select('id,full_name,email,role,created_at')
+        .order('created_at',{ascending:false})
+        .limit(25);
       if (!r.error){
         renderTable('tbl_profiles', r.data, [
           {key:'id',label:'ID'}, {key:'full_name',label:'Name'}, {key:'email',label:'Email'},
@@ -157,28 +168,5 @@
     loadCounts();
     loadTables();
   </script>
-<script src="config.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
-  <script>
-// Use the SAME email list as in app.js
-const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
-
-// Kick non-admins out if they reach /admin.html
-supabase.auth.onAuthStateChange((_e, session) => {
-  const email = session?.user?.email || '';
-  if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
-});
-
-// Also check immediately on page load (prevents flicker)
-(async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  const email = user?.email || '';
-  if (!email || !ADMIN_EMAILS.includes(email)) location.href = '/';
-})();
-</script>
-  <script src="config.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
 </body>
 </html>
