@@ -5,20 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>GrowIndia Jobs</title>
   <link rel="stylesheet" href="styles.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
 </head>
 <body>
 <nav>
   <div class="brand">GrowIndia Jobs</div>
   <div class="row">
-    <!-- This always sends admins to /admin.html and everyone else to /dashboard.html -->
+    <!-- Sends admins to /admin.html and everyone else to /dashboard.html -->
     <a href="#" onclick="goToDashboard(); return false;">Dashboard</a>
 
-    <!-- Wire the buttons to the helpers in app.js -->
-    <button id="loginBtn" class="btn" onclick="sbAuth.openLogin()">Login / Sign up</button>
-    <button id="logoutBtn" class="btn ghost" onclick="sbAuth.signOut()" hidden>Logout</button>
+    <!-- Buttons are wired below via JS (no inline handlers to avoid conflicts) -->
+    <button id="loginBtn" class="btn">Login / Sign up</button>
+    <button id="logoutBtn" class="btn ghost" hidden>Logout</button>
   </div>
 </nav>
 
@@ -27,17 +24,19 @@
 
   <div class="card">
     <div class="grid">
-      <div><label>Search</label><input id="q" placeholder="Title or company"/></div>
+      <div><label for="q">Search</label><input id="q" placeholder="Title or company"/></div>
       <div>
-        <label>Employment</label>
+        <label for="emp">Employment</label>
         <select id="emp">
           <option value="">Any</option>
-          <option>full_time</option><option>part_time</option>
-          <option>contract</option><option>internship</option>
+          <option value="full_time">full_time</option>
+          <option value="part_time">part_time</option>
+          <option value="contract">contract</option>
+          <option value="internship">internship</option>
         </select>
       </div>
       <div>
-        <label>Remote?</label>
+        <label for="rem">Remote?</label>
         <select id="rem">
           <option value="">Any</option>
           <option value="true">Yes</option>
@@ -52,71 +51,114 @@
 
 <footer>© GrowIndia</footer>
 
+<!-- Load scripts ONCE in the correct order -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+
 <script>
-const jobsEl=document.getElementById('jobs'),
-      qEl=document.getElementById('q'),
-      empEl=document.getElementById('emp'),
-      remEl=document.getElementById('rem'),
-      loginBtn=document.getElementById('loginBtn'),
-      logoutBtn=document.getElementById('logoutBtn');
+document.addEventListener('DOMContentLoaded', () => {
+  const jobsEl   = document.getElementById('jobs');
+  const qEl      = document.getElementById('q');
+  const empEl    = document.getElementById('emp');
+  const remEl    = document.getElementById('rem');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn= document.getElementById('logoutBtn');
 
-logoutBtn.onclick=()=>sbAuth.signOut();
-loginBtn.onclick=async()=>{
-  const email=prompt("Enter your email");
-  if(!email) return;
-  try{ await sbAuth.sendMagicLink(email); alert("Magic link sent!"); }
-  catch(e){ alert(e.message) }
-};
+  // Hook auth buttons to helpers from app.js
+  loginBtn.addEventListener('click', () => sbAuth.openLogin());
+  logoutBtn.addEventListener('click', () => sbAuth.signOut());
 
-async function refreshAuthButtons(){
-  const u=await sbAuth.currentUser();
-  loginBtn.style.display=u?'none':'inline-block';
-  logoutBtn.style.display=u?'inline-block':'none';
-}
-
-async function loadJobs(){
-  const term = qEl.value?.trim().toLowerCase();
-  const emp  = empEl.value;
-  const rem  = remEl.value;
-
-  let q = sb.supabase.from('v_job_public').select('*').order('created_at',{ascending:false}).limit(100);
-  if(emp) q = q.eq('employment', emp);
-  if(rem) q = q.eq('is_remote', rem === 'true');
-
-  let { data, error } = await q;
-
-  // Fallback if view is missing
-  if(error){
-    const r = await sb.supabase.from('jobs').select('*, companies(name, website)').order('created_at',{ascending:false}).limit(100);
-    data = (r.data||[]).map(j => ({...j, company_name:j.companies?.name, company_website:j.companies?.website}));
-    error = r.error;
+  async function refreshAuthButtons(){
+    try{
+      const u = await sbAuth.currentUser();
+      loginBtn.hidden  = !!u;
+      logoutBtn.hidden = !u;
+    }catch(_e){
+      // If auth helper isn't ready yet, keep default
+    }
   }
 
-  jobsEl.innerHTML='';
-  if(error){ jobsEl.innerHTML = '<div class="card">Error: '+error.message+'</div>'; return }
-  const list = (data||[]).filter(j =>
-    !term ||
-    (j.title||'').toLowerCase().includes(term) ||
-    (j.company_name||'').toLowerCase().includes(term)
-  );
-  if(!list.length){ jobsEl.innerHTML='<div class="card">No jobs match.</div>'; return }
+  async function loadJobs(){
+    const term = (qEl.value || '').trim().toLowerCase();
+    const emp  = empEl.value;
+    const rem  = remEl.value;
 
-  list.forEach(r=>{
-    const c=document.createElement('div'); c.className='card';
-    c.innerHTML=`<h2>${r.title||''}</h2>
-      <div class="badge">${r.company_name||''}</div>
-      <p><small class="muted">${r.location||'Location flexible'} • ${(r.employment||'').replace('_',' ')}${r.currency?(' • '+r.currency):''} ${r.salary_min||''}${r.salary_max?('-'+r.salary_max):''}</small></p>
-      <div class="row"><a class="btn ghost" href="dashboard.html?apply=${r.id}">Apply</a></div>`;
-    jobsEl.appendChild(c);
-  });
-}
+    let q = sb.supabase
+      .from('v_job_public')
+      .select('*')
+      .order('created_at', { ascending:false })
+      .limit(100);
 
-[qEl,empEl,remEl].forEach(el=>el.addEventListener('input', loadJobs));
-refreshAuthButtons(); loadJobs();
+    if (emp) q = q.eq('employment', emp);
+    if (rem) q = q.eq('is_remote', rem === 'true');
+
+    let { data, error } = await q;
+
+    // Fallback if the view doesn't exist
+    if (error){
+      const r = await sb.supabase
+        .from('jobs')
+        .select('*, companies(name, website)')
+        .order('created_at', { ascending:false })
+        .limit(100);
+
+      data  = (r.data || []).map(j => ({
+        ...j,
+        company_name: j.companies?.name,
+        company_website: j.companies?.website
+      }));
+      error = r.error;
+    }
+
+    jobsEl.innerHTML = '';
+    if (error){
+      jobsEl.innerHTML = '<div class="card">Error: ' + (error.message || 'Failed to load jobs') + '</div>';
+      return;
+    }
+
+    const list = (data || []).filter(j =>
+      !term ||
+      (j.title || '').toLowerCase().includes(term) ||
+      (j.company_name || '').toLowerCase().includes(term)
+    );
+
+    if (!list.length){
+      jobsEl.innerHTML = '<div class="card">No jobs match.</div>';
+      return;
+    }
+
+    list.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const empLabel = (r.employment || '').replace(/_/g,' ');
+      const sal = (r.currency ? (' • ' + r.currency) : '') +
+                  (r.salary_min ? (' ' + r.salary_min) : '') +
+                  (r.salary_max ? ('-' + r.salary_max) : '');
+
+      card.innerHTML = `
+        <h2>${r.title || ''}</h2>
+        <div class="badge">${r.company_name || ''}</div>
+        <p><small class="muted">
+          ${r.location || 'Location flexible'} • ${empLabel}${sal}
+        </small></p>
+        <div class="row">
+          <a class="btn ghost" href="dashboard.html?apply=${encodeURIComponent(r.id)}">Apply</a>
+        </div>
+      `;
+      jobsEl.appendChild(card);
+    });
+  }
+
+  // Filter listeners (right events for inputs/selects)
+  qEl.addEventListener('input', loadJobs);
+  empEl.addEventListener('change', loadJobs);
+  remEl.addEventListener('change', loadJobs);
+
+  refreshAuthButtons();
+  loadJobs();
+});
 </script>
-<script src="config.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
 </body>
 </html>
-
