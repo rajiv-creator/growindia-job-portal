@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Redirecting…</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+</head>
+<body>
+<script>
+(async () => {
+  // Allow supabase-js to pick up the magic link tokens in the URL
+  // (detectSessionInUrl is already true in app.js client init)
+
+  // Clean the hash after session is stored
+  if (location.hash && location.hash.includes('access_token')) {
+    history.replaceState({}, '', location.pathname);
+  }
+
+  // Decide where to go
+  const { data: { user } } = await sb.supabase.auth.getUser();
+  if (!user) {
+    // No session? Go home
+    location.href = '/';
+    return;
+  }
+
+  const isAdmin = await sbAuth.isAdmin();
+  location.href = isAdmin ? '/admin.html' : '/dashboard.html';
+})();
+</script>
+</body>
+</html>
