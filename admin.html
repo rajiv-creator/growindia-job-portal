@@ -28,14 +28,14 @@
     .link{color:#2563eb;text-decoration:none}
     .link:hover{text-decoration:underline}
     .error{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px}
-    @media (max-width:1000px){.grid{grid-template-columns:1fr}.count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:1100px){.grid{grid-template-columns:1fr}.count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>
 </head>
 <body>
   <div class="toolbar">
     <div>
       <h1>Admin</h1>
-      <p class="muted">Private reports & raw tables (read-only) + Jobs manager</p>
+      <p class="muted">Full control: Companies, Jobs, Applications, Accounts</p>
     </div>
     <div><a class="link" href="/">← Back to site</a></div>
   </div>
@@ -54,13 +54,30 @@
     <div class="pill"><div class="label">Hired apps</div>        <div class="num" id="c_hired_apps">–</div></div>
   </div>
 
-  <!-- Jobs manager (complete CRUD actions for admin) -->
+  <!-- Companies manager -->
+  <div class="card">
+    <h2>Manage Companies</h2>
+    <div class="pad">
+      <form id="companyForm" class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+        <div><label>Name</label><input id="co_name" required placeholder="Company name"></div>
+        <div><label>Website</label><input id="co_site" placeholder="https://..."></div>
+        <div><label>Owner email (optional)</label><input id="co_owner_email" placeholder="owner@email.com"></div>
+        <div class="row" style="align-items:flex-end;gap:12px">
+          <button class="btn" type="submit">Create company</button>
+          <span id="companyMsg" class="muted"></span>
+        </div>
+      </form>
+      <div id="tbl_companies" style="margin-top:12px">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Jobs manager -->
   <div class="card">
     <h2>Manage Jobs</h2>
     <div class="pad">
       <form id="jobForm" class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
         <div><label>Company</label><select id="f_company"></select></div>
-        <div><label>Title</label><input id="f_title" placeholder="e.g. Junior Frontend Developer"></div>
+        <div><label>Title</label><input id="f_title" placeholder="e.g. Junior Frontend Developer" required></div>
         <div><label>Location</label><input id="f_location" placeholder="e.g. Remote / Bengaluru"></div>
         <div>
           <label>Employment</label>
@@ -71,7 +88,8 @@
             <option value="internship">internship</option>
           </select>
         </div>
-        <div><label>Remote?</label>
+        <div>
+          <label>Remote?</label>
           <select id="f_remote"><option value="true">Yes</option><option value="false">No</option></select>
         </div>
         <div class="row" style="gap:12px">
@@ -84,21 +102,14 @@
           <span id="jobFormMsg" class="muted"></span>
         </div>
       </form>
+      <div id="tbl_jobs" style="margin-top:12px">Loading…</div>
     </div>
   </div>
 
   <div class="grid">
     <div class="card">
-      <h2>Jobs</h2>
-      <div class="pad"><div id="tbl_jobs">Loading…</div></div>
-    </div>
-    <div class="card">
       <h2>Applications</h2>
       <div class="pad"><div id="tbl_apps">Loading…</div></div>
-    </div>
-    <div class="card">
-      <h2>Companies</h2>
-      <div class="pad"><div id="tbl_companies">Loading…</div></div>
     </div>
     <div class="card">
       <h2>Accounts</h2>
@@ -106,12 +117,12 @@
     </div>
   </div>
 
-  <!-- Scripts in order -->
+  <!-- Scripts -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script>
-    // --- Robust client: use window.sb.supabase if available, else create our own
+    // Robust client: use window.sb.supabase if present; else create our own.
     const client = (window.sb && window.sb.supabase)
       ? window.sb.supabase
       : window.supabase.createClient(
@@ -120,24 +131,16 @@
           { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } }
         );
 
-    // isAdmin(): use sbAuth if present, else local check
     async function isAdmin(){
-      if (window.sbAuth && typeof window.sbAuth.isAdmin === 'function') {
-        return window.sbAuth.isAdmin();
-      }
+      if (window.sbAuth && typeof window.sbAuth.isAdmin === 'function') return window.sbAuth.isAdmin();
       const { data: { user } } = await client.auth.getUser();
       if (!user) return false;
       const r = await client.from('profiles').select('role').eq('id', user.id).maybeSingle();
-      if (r.error) { console.error(r.error); return false; }
       return ['admin','super_admin'].includes(String(r.data?.role||'').toLowerCase());
     }
 
-    // Helpers
     const el = id => document.getElementById(id);
-    function renderError(targetId, msg){
-      const host = el(targetId);
-      host.innerHTML = `<div class="error"><strong>Error:</strong> ${msg}</div>`;
-    }
+    function renderError(targetId, msg){ el(targetId).innerHTML = `<div class="error"><strong>Error:</strong> ${msg}</div>`; }
     function renderTable(targetId, rows, columns){
       const host = el(targetId);
       if (!rows || rows.length === 0){ host.innerHTML = '<em>No data</em>'; return; }
@@ -148,134 +151,115 @@
       host.innerHTML = `<table>${thead}${tbody}</table>`;
     }
 
-    // Guard
+    // Guard & boot
     async function guardAndLoad(){
       const { data: { user } } = await client.auth.getUser();
       if (!user) { location.href = '/'; return; }
       if (!(await isAdmin())) { location.href = '/'; return; }
 
-      // Load all
-      await Promise.all([loadCounts(), loadTables(), initJobsManager()]);
+      await Promise.all([loadCounts(), initCompanies(), initJobs(), loadApplications(), loadProfiles()]);
     }
     client.auth.onAuthStateChange(async (_e, session) => {
       if (!session?.user) { location.href = '/'; return; }
       if (!(await isAdmin())) { location.href = '/'; }
     });
 
-    // Counts
+    // ----- COUNTS -----
     async function loadCounts(){
       const r = await client.from('v_admin_counts').select('*').maybeSingle();
       if (r.error){ renderError('counts', r.error.message); return; }
       const data = r.data || {};
-      for (const k of Object.keys(data)){
-        const t = el('c_' + k);
-        if (t) t.textContent = data[k];
-      }
+      for (const k of Object.keys(data)){ const t = el('c_' + k); if (t) t.textContent = data[k]; }
     }
 
-    // Tables (read)
-    async function loadTables(){
-      // Jobs
-      let r = await client
-        .from('v_job_public')
-        .select('id,title,company_name,location,status,featured,created_at')
-        .order('created_at',{ascending:false})
-        .limit(25);
-      if (r.error){ renderError('tbl_jobs', r.error.message); }
-      else {
-        // add action buttons
-        const rows = (r.data||[]).map(x => ({
-          ...x,
-          actions: `
-            <button class="btn ghost" data-act="toggleStatus" data-id="${x.id}">${x.status==='active'?'Close':'Open'}</button>
-            <button class="btn ghost" data-act="toggleFeatured" data-id="${x.id}">${x.featured?'Unfeature':'Feature'}</button>
-            <button class="btn ghost" data-act="delete" data-id="${x.id}">Delete</button>
-          `
-        }));
-        const host = el('tbl_jobs');
-        renderTable('tbl_jobs', rows, [
-          {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
-          {key:'location',label:'Location'}, {key:'status',label:'Status'},
-          {key:'featured',label:'Featured'}, {key:'created_at',label:'Created'},
-          {key:'actions',label:'Actions'}
-        ]);
-        // wire actions
-        host.querySelectorAll('[data-act]').forEach(btn=>{
-          btn.addEventListener('click', async ()=>{
-            const id = btn.getAttribute('data-id');
-            const act = btn.getAttribute('data-act');
-            if (act==='delete'){
-              if (!confirm('Delete this job?')) return;
-              const d = await client.from('jobs').delete().eq('id', id);
-              if (d.error) alert(d.error.message);
-              await Promise.all([loadCounts(), loadTables()]);
-              return;
-            }
-            if (act==='toggleStatus'){
-              const cur = rows.find(r=>r.id===id)?.status || 'active';
-              const next = cur==='active' ? 'closed' : 'active';
-              const u = await client.from('jobs').update({status:next}).eq('id', id);
-              if (u.error) alert(u.error.message);
-              await Promise.all([loadCounts(), loadTables()]);
-              return;
-            }
-            if (act==='toggleFeatured'){
-              const cur = rows.find(r=>r.id===id)?.featured || false;
-              const u = await client.from('jobs').update({featured:!cur}).eq('id', id);
-              if (u.error) alert(u.error.message);
-              await Promise.all([loadCounts(), loadTables()]);
-              return;
-            }
-          });
+    // ----- COMPANIES -----
+    async function initCompanies(){
+      const form = el('companyForm'), msg = el('companyMsg');
+      form.addEventListener('submit', async e=>{
+        e.preventDefault(); msg.textContent = 'Creating…';
+        const name = el('co_name').value.trim();
+        const website = el('co_site').value.trim() || null;
+        const ownerEmail = el('co_owner_email').value.trim().toLowerCase();
+
+        let owner_id = null;
+        if (ownerEmail){
+          const r = await client.from('profiles').select('id').eq('email', ownerEmail).maybeSingle();
+          if (r.error){ msg.textContent = 'Error: '+r.error.message; return; }
+          if (!r.data){ msg.textContent = 'No user with that email.'; return; }
+          owner_id = r.data.id;
+        }
+
+        const ins = await client.from('companies').insert([{ name, website, owner_id }]).select('id').single();
+        if (ins.error){ msg.textContent = 'Error: '+ins.error.message; return; }
+        msg.textContent = 'Created ✔';
+        form.reset();
+        await Promise.all([loadCompanyOptions(), loadCompaniesTable(), loadCounts()]);
+        setTimeout(()=>msg.textContent='',1200);
+      });
+
+      await Promise.all([loadCompanyOptions(), loadCompaniesTable()]);
+    }
+
+    async function loadCompaniesTable(){
+      const r = await client.from('companies').select('id,name,website,owner_id,created_at').order('created_at',{ascending:false}).limit(50);
+      if (r.error){ renderError('tbl_companies', r.error.message); return; }
+      const rows = (r.data||[]).map(c => ({
+        ...c,
+        actions: `
+          <button class="btn ghost" data-act="editCompany" data-id="${c.id}">Edit</button>
+          <button class="btn ghost" data-act="deleteCompany" data-id="${c.id}">Delete</button>`
+      }));
+      const target = 'tbl_companies';
+      renderTable(target, rows, [
+        {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
+        {key:'owner_id',label:'Owner ID'}, {key:'created_at',label:'Created'}, {key:'actions',label:'Actions'}
+      ]);
+      const host = el(target);
+      host.querySelectorAll('[data-act="deleteCompany"]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          if (!confirm('Delete this company and its jobs?')) return;
+          const id = btn.getAttribute('data-id');
+          const d = await client.from('companies').delete().eq('id', id);
+          if (d.error) alert(d.error.message);
+          await Promise.all([loadCompaniesTable(), loadCounts(), loadJobsTable()]);
         });
-      }
-
-      // Applications
-      r = await client.from('applications')
-        .select('id,job_id,applicant_id,status,created_at')
-        .order('created_at',{ascending:false}).limit(25);
-      if (r.error){ renderError('tbl_apps', r.error.message); }
-      else {
-        renderTable('tbl_apps', r.data, [
-          {key:'id',label:'ID'}, {key:'job_id',label:'Job'}, {key:'applicant_id',label:'Applicant'},
-          {key:'status',label:'Status'}, {key:'created_at',label:'Applied'}
-        ]);
-      }
-
-      // Companies
-      r = await client.from('companies')
-        .select('id,name,website,owner_id,created_at')
-        .order('created_at',{ascending:false}).limit(25);
-      if (r.error){ renderError('tbl_companies', r.error.message); }
-      else {
-        renderTable('tbl_companies', r.data, [
-          {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
-          {key:'owner_id',label:'Owner'}, {key:'created_at',label:'Created'}
-        ]);
-      }
-
-      // Profiles
-      r = await client.from('profiles')
-        .select('id,full_name,email,role,created_at')
-        .order('created_at',{ascending:false}).limit(25);
-      if (r.error){ renderError('tbl_profiles', r.error.message); }
-      else {
-        const rows = (r.data||[]).map(x => ({...x, role: (x.role||'').toString()}));
-        renderTable('tbl_profiles', rows, [
-          {key:'id',label:'ID'}, {key:'full_name',label:'Name'}, {key:'email',label:'Email'},
-          {key:'role',label:'Role'}, {key:'created_at',label:'Created'}
-        ]);
-      }
+      });
+      host.querySelectorAll('[data-act="editCompany"]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-id');
+          const name = prompt('New name?'); if (name===null) return;
+          const website = prompt('New website? (or blank)');
+          const ownerEmail = prompt('New owner email? (or blank)');
+          let owner_id = null;
+          if (ownerEmail && ownerEmail.trim()){
+            const u = await client.from('profiles').select('id').eq('email', ownerEmail.trim().toLowerCase()).maybeSingle();
+            if (u.error){ alert(u.error.message); return; }
+            if (!u.data){ alert('No user with that email'); return; }
+            owner_id = u.data.id;
+          }
+          const u2 = await client.from('companies').update({
+            name: name.trim(),
+            website: (website||'').trim() || null,
+            owner_id
+          }).eq('id', id);
+          if (u2.error){ alert(u2.error.message); return; }
+          await Promise.all([loadCompaniesTable(), loadCompanyOptions()]);
+        });
+      });
     }
 
-    // Jobs manager (create)
-    async function initJobsManager(){
-      await loadCompanyOptions();
-      el('jobForm').addEventListener('submit', async (e)=>{
-        e.preventDefault();
-        const msg = el('jobFormMsg');
-        msg.textContent = 'Creating…';
+    async function loadCompanyOptions(){
+      const sel = el('f_company'); sel.innerHTML = '<option value="">Loading…</option>';
+      const r = await client.from('companies').select('id,name').order('name');
+      if (r.error){ sel.innerHTML = '<option value="">(error)</option>'; return; }
+      sel.innerHTML = (r.data||[]).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
 
+    // ----- JOBS -----
+    async function initJobs(){
+      const form = el('jobForm'), msg = el('jobFormMsg');
+      form.addEventListener('submit', async e=>{
+        e.preventDefault(); msg.textContent='Creating…';
         const company_id = el('f_company').value;
         const title      = el('f_title').value.trim();
         const location   = el('f_location').value.trim();
@@ -285,34 +269,179 @@
         const salary_max = el('f_sal_max').value ? Number(el('f_sal_max').value) : null;
         const currency   = el('f_currency').value.trim() || null;
 
-        if (!company_id || !title){
-          msg.textContent = 'Company and Title are required.';
-          return;
-        }
+        if (!company_id || !title){ msg.textContent='Company and Title are required.'; return; }
 
         const r = await client.from('jobs').insert([{
           company_id, title, location, employment, is_remote, salary_min, salary_max, currency, status:'active', featured:false
         }]).select('id').single();
 
-        if (r.error){
-          msg.textContent = 'Error: ' + r.error.message;
-        }else{
+        if (r.error){ msg.textContent = 'Error: ' + r.error.message; }
+        else{
           msg.textContent = 'Created ✔';
-          el('f_title').value=''; el('f_location').value=''; el('f_sal_min').value=''; el('f_sal_max').value=''; el('f_currency').value='';
-          await Promise.all([loadCounts(), loadTables()]);
-          setTimeout(()=>{ msg.textContent=''; },1500);
+          form.reset();
+          await Promise.all([loadJobsTable(), loadCounts()]);
+          setTimeout(()=>msg.textContent='',1200);
         }
+      });
+
+      await loadJobsTable();
+    }
+
+    async function loadJobsTable(){
+      // Admin view: fetch ALL jobs with company name
+      const r = await client.from('jobs')
+        .select('id,title,location,status,featured,created_at,companies(name)')
+        .order('created_at',{ascending:false}).limit(50);
+      if (r.error){ renderError('tbl_jobs', r.error.message); return; }
+      const rows = (r.data||[]).map(x => ({
+        id: x.id,
+        title: x.title,
+        company_name: x.companies?.name || '',
+        location: x.location || '',
+        status: x.status,
+        featured: x.featured,
+        created_at: x.created_at,
+        actions: `
+          <button class="btn ghost" data-act="toggleStatus" data-id="${x.id}">${x.status==='active'?'Close':'Open'}</button>
+          <button class="btn ghost" data-act="toggleFeatured" data-id="${x.id}">${x.featured?'Unfeature':'Feature'}</button>
+          <button class="btn ghost" data-act="delete" data-id="${x.id}">Delete</button>
+        `
+      }));
+      renderTable('tbl_jobs', rows, [
+        {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
+        {key:'location',label:'Location'}, {key:'status',label:'Status'},
+        {key:'featured',label:'Featured'}, {key:'created_at',label:'Created'},
+        {key:'actions',label:'Actions'}
+      ]);
+
+      const host = el('tbl_jobs');
+      host.querySelectorAll('[data-act]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-id');
+          const act = btn.getAttribute('data-act');
+          if (act==='delete'){
+            if (!confirm('Delete this job?')) return;
+            const d = await client.from('jobs').delete().eq('id', id);
+            if (d.error) alert(d.error.message);
+            await Promise.all([loadJobsTable(), loadCounts()]);
+            return;
+          }
+          if (act==='toggleStatus'){
+            const row = rows.find(r=>r.id===id);
+            const next = row.status==='active' ? 'closed' : 'active';
+            const u = await client.from('jobs').update({status:next}).eq('id', id);
+            if (u.error) alert(u.error.message);
+            await Promise.all([loadJobsTable(), loadCounts()]);
+            return;
+          }
+          if (act==='toggleFeatured'){
+            const row = rows.find(r=>r.id===id);
+            const u = await client.from('jobs').update({featured:!row.featured}).eq('id', id);
+            if (u.error) alert(u.error.message);
+            await Promise.all([loadJobsTable(), loadCounts()]);
+            return;
+          }
+        });
       });
     }
 
-    async function loadCompanyOptions(){
-      const sel = el('f_company'); sel.innerHTML = '<option value="">Loading…</option>';
-      const r = await client.from('companies').select('id,name').order('name');
-      if (r.error){ sel.innerHTML = '<option value="">(error loading companies)</option>'; return; }
-      sel.innerHTML = r.data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    // ----- APPLICATIONS -----
+    async function loadApplications(){
+      const a = await client.from('applications')
+        .select('id,job_id,applicant_id,status,created_at')
+        .order('created_at',{ascending:false}).limit(100);
+      if (a.error){ renderError('tbl_apps', a.error.message); return; }
+      const apps = a.data || [];
+
+      const jobIds = [...new Set(apps.map(x=>x.job_id))];
+      const userIds = [...new Set(apps.map(x=>x.applicant_id))];
+
+      const j = await client.from('jobs').select('id,title,company_id,companies(name)').in('id', jobIds);
+      const p = await client.from('profiles').select('id,full_name,email').in('id', userIds);
+
+      const jobMap = new Map((j.data||[]).map(r => [r.id, r]));
+      const userMap = new Map((p.data||[]).map(r => [r.id, r]));
+
+      const statusOpts = ['pending','reviewed','shortlisted','hired','rejected'];
+
+      const rows = apps.map(app => {
+        const job = jobMap.get(app.job_id) || {};
+        const user = userMap.get(app.applicant_id) || {};
+        const when = new Date(app.created_at).toLocaleString();
+        const select = `<select data-app="${app.id}" data-field="status">
+          ${statusOpts.map(s => `<option value="${s}" ${s===app.status?'selected':''}>${s}</option>`).join('')}
+        </select>`;
+        return {
+          job: `${job.title||'(Job)'} — ${job.companies?.name||''}`,
+          applicant: `${user.full_name||''} ${user.email?('('+user.email+')'):''}`,
+          status: select,
+          created_at: when,
+          actions: `<button class="btn ghost" data-act="delApp" data-id="${app.id}">Delete</button>`
+        };
+      });
+
+      const target = 'tbl_apps';
+      renderTable(target, rows, [
+        {key:'job',label:'Job'}, {key:'applicant',label:'Applicant'},
+        {key:'status',label:'Status'}, {key:'created_at',label:'Applied'},
+        {key:'actions',label:'Actions'}
+      ]);
+
+      const host = el(target);
+      host.querySelectorAll('select[data-app]').forEach(sel=>{
+        sel.addEventListener('change', async ()=>{
+          const id = sel.getAttribute('data-app');
+          const v = sel.value;
+          const r = await client.from('applications').update({status:v}).eq('id', id);
+          if (r.error) alert(r.error.message);
+          else await loadCounts();
+        });
+      });
+      host.querySelectorAll('[data-act="delApp"]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          if (!confirm('Delete this application?')) return;
+          const id = btn.getAttribute('data-id');
+          const r = await client.from('applications').delete().eq('id', id);
+          if (r.error) alert(r.error.message);
+          else { await Promise.all([loadApplications(), loadCounts()]); }
+        });
+      });
     }
 
-    // Start
+    // ----- ACCOUNTS (profiles) -----
+    async function loadProfiles(){
+      const r = await client.from('profiles')
+        .select('id,full_name,email,role,created_at')
+        .order('created_at',{ascending:false}).limit(100);
+      if (r.error){ renderError('tbl_profiles', r.error.message); return; }
+      const roleOpts = ['user','admin','super_admin'];
+      const rows = (r.data||[]).map(x => ({
+        id: x.id,
+        full_name: x.full_name || '',
+        email: x.email || '',
+        role: `<select data-prof="${x.id}" data-field="role">
+                 ${roleOpts.map(o=>`<option value="${o}" ${String(x.role||'').toLowerCase()===o?'selected':''}>${o}</option>`).join('')}
+               </select>`,
+        created_at: x.created_at
+      }));
+      const target = 'tbl_profiles';
+      renderTable(target, rows, [
+        {key:'id',label:'ID'}, {key:'full_name',label:'Name'},
+        {key:'email',label:'Email'}, {key:'role',label:'Role'},
+        {key:'created_at',label:'Created'}
+      ]);
+      el(target).querySelectorAll('select[data-prof]').forEach(sel=>{
+        sel.addEventListener('change', async ()=>{
+          const id = sel.getAttribute('data-prof');
+          const v = sel.value;
+          const r = await client.from('profiles').update({role:v}).eq('id', id);
+          if (r.error) alert(r.error.message);
+          else alert('Updated ✔');
+        });
+      });
+    }
+
+    // Kick off
     guardAndLoad();
   </script>
 </body>
