@@ -1,22 +1,24 @@
-// app.js (must be pure JS — no <script> tags in this file)
-console.log('[app.js] loaded');
-window.sbAuth = window.sbAuth || {};
-// ==============================
+<!-- app.js (REPLACE WHOLE FILE) -->
+<script>
+// ================================
 // Supabase init (uses config.js)
-// ==============================
-const supabase = window.supabase.createClient(
-  window.__SUPABASE_URL__,
-  window.__SUPABASE_ANON_KEY__
-);
+// ================================
+const supabase = window.supabase?.createClient
+  ? window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__)
+  : window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
 
-// ==============================
-// Admin allow-list (edit emails)
-// ==============================
+// also expose for admin.html and other inline scripts
+window.supabase = supabase;
+
+// ================================
+// Admin allow-list (edit emails here)
+// ================================
 const ADMIN_EMAILS = ['rajiv.growindia1@gmail.com'];
 
-// Helpers
+// ---------------- Helper: get by id
 const $id = (id) => document.getElementById(id);
 
+// ---------------- Show/Hide Login/Logout based on session
 async function refreshAuthButtons() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -29,84 +31,89 @@ async function refreshAuthButtons() {
   }
 }
 
-// ==============================
+// ---------------- Smart Dashboard
+async function goToDashboard() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const email = user?.email || '';
+  const isAdmin = ADMIN_EMAILS.includes(email);
+  const target = isAdmin ? '/admin.html' : '/dashboard.html';
+  if (location.pathname.toLowerCase() !== target) location.href = target;
+}
+
+// ================================
 // Central redirect on auth state
 // (Runs after magic-link or password login)
-// ==============================
-supabase.auth.onAuthStateChange(async (_evt, session) => {
+// ================================
+supabase.auth.onAuthStateChange(async (evt, session) => {
   await refreshAuthButtons();
-
-  const user   = session?.user || null;
+  // Only redirect when signed in
+  if (!session) return;
+  const email = session.user?.email || '';
+  const isAdmin = ADMIN_EMAILS.includes(email);
+  const target = isAdmin ? '/admin.html' : '/dashboard.html';
   const here   = location.pathname.toLowerCase();
-  const atHome = (here === '/' || here.endsWith('/index.html'));
-
-  if (!user) {
-    if (here.endsWith('/admin.html')) location.href = '/';
-    return;
-  }
-
-  const isAdmin = ADMIN_EMAILS.includes(user.email);
-  const target  = isAdmin ? '/admin.html' : '/dashboard.html';
-
-  // Only bounce from home; otherwise stay where the user is
-  if (atHome && here !== target) location.href = target;
-  if (here.endsWith('/admin.html') && !isAdmin) location.href = '/';
+  if (here !== target) location.href = target;
 });
 
-// ==============================
-// Global helpers (for onclick)
-// ==============================
-window.sbAuth = {
-  // Email + password sign-in
-  async signInWithPassword({ email, password }) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
-    return { error };
-  },
+// ================================
+// Auth helpers exported globally
+// ================================
+async function signInWithPassword(email, password) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) { alert(error.message); throw error; }
+}
 
-  // Simple prompt-based login
-  async openLogin() {
-    const email = (prompt('Email:') || '').trim();
-    if (!email) return;
+async function sendMagicLink(email) {
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.__SITE_URL__ || window.location.origin }});
+  if (error) { alert(error.message); throw error; }
+  alert('Magic link sent. Check your email.');
+}
 
-    const pwd = prompt('Password (leave blank for magic link):') || '';
-    if (pwd) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
-      if (error) alert(error.message);
-      return;
-    }
-    // Magic link
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.__SITE_URL__ || window.location.origin }
-    });
-    if (error) alert(error.message);
-    else alert('Check your email for the magic link.');
-  },
+async function openLogin() {
+  const email = prompt('Email:');
+  if (!email) return;
+  const magic = confirm(`Send magic link to ${email}?  Press Cancel for password login.`);
+  if (magic) return sendMagicLink(email);
+  const password = prompt('Password:');
+  if (!password) return;
+  await signInWithPassword(email, password);
+}
 
-  // Optional: direct magic-link sender
-  async sendMagicLink(email) {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.__SITE_URL__ || window.location.origin }
-    });
-    if (error) alert(error.message);
-    return { error };
-  },
+async function signOut() {
+  await supabase.auth.signOut();
+  await refreshAuthButtons();
+  location.href = '/';
+}
 
-  async signOut() {
-    await supabase.auth.signOut();
-    location.href = '/';
-  }
-};
+// export to window (so HTML onclick or other scripts can use it)
+window.sbAuth = { openLogin, signInWithPassword, sendMagicLink, signOut };
+window.goToDashboard = goToDashboard;
 
-// Smart “Dashboard” route chooser
-window.goToDashboard = async function () {
-  const { data: { user } } = await supabase.auth.getUser();
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email);
-  location.href = isAdmin ? '/admin.html' : '/dashboard.html';
-};
+// ================================
+// Auto-wire buttons/links (no HTML edits needed)
+// ================================
+document.addEventListener('DOMContentLoaded', async () => {
+  // show/hide Login/Logout now
+  await refreshAuthButtons();
 
-// First paint: set header buttons correctly
-refreshAuthButtons();
-console.log('app.js loaded; sbAuth available:', !!window.sbAuth);
+  // wire buttons if present
+  $id('loginBtn')?.addEventListener('click', (e) => { e.preventDefault(); window.sbAuth.openLogin(); });
+  $id('logoutBtn')?.addEventListener('click', (e) => { e.preventDefault(); window.sbAuth.signOut(); });
+
+  // Make any plain link <a href="dashboard.html"> smart (admins -> admin.html)
+  // We ONLY intercept the header-style "dashboard.html" (no querystring).
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href$="dashboard.html"]');
+    if (!a) return;
+    // ignore "Apply" links like dashboard.html?apply=123
+    try {
+      const url = new URL(a.getAttribute('href'), location.origin);
+      if (url.search) return; // has ?query -> likely apply; don't intercept
+    } catch {}
+    e.preventDefault();
+    window.goToDashboard();
+  });
+});
+
+console.log('app.js loaded; sbAuth available:', typeof window.sbAuth === 'object');
+</script>
