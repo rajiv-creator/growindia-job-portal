@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>GrowIndia — Dashboard</title>
   <link rel="stylesheet" href="styles.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
 </head>
 <body>
 <nav>
   <div class="brand">GrowIndia Jobs</div>
   <div class="row">
     <a href="#" onclick="goToDashboard(); return false;">Dashboard</a>
-    <button id="loginBtn" class="btn" onclick="sbAuth.openLogin()">Login / Sign up</button>
-    <button id="logoutBtn" class="btn ghost" onclick="sbAuth.signOut()" hidden>Logout</button>
+    <button id="loginBtn" class="btn">Login / Sign up</button>
+    <button id="logoutBtn" class="btn ghost" hidden>Logout</button>
   </div>
 </nav>
 
@@ -83,124 +80,278 @@
 
 <footer>© GrowIndia</footer>
 
+<!-- Load scripts ONCE, and BEFORE the inline script below -->
+<script src="config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="app.js?v=2"></script>
+
 <script>
-const tabsEl=document.getElementById('tabs'); const tabBtns=[...document.querySelectorAll('.tabbar .tab')];
-const authGate=document.getElementById('authGate'); const logoutBtn=document.getElementById('logoutBtn');
-const companyList=document.getElementById('companyList'), c_name=document.getElementById('c_name'), c_website=document.getElementById('c_website'), saveCompany=document.getElementById('saveCompany');
-const j_company=document.getElementById('j_company'), j_title=document.getElementById('j_title'), j_desc=document.getElementById('j_desc'), j_loc=document.getElementById('j_loc'), j_emp=document.getElementById('j_emp'), j_smin=document.getElementById('j_smin'), j_smax=document.getElementById('j_smax'), j_curr=document.getElementById('j_curr'), j_remote=document.getElementById('j_remote'), postJob=document.getElementById('postJob');
-const jobsList=document.getElementById('jobsList'), appsTable=document.getElementById('appsTable');
-const applyJobIdBadge=document.getElementById('applyJobId'), a_file=document.getElementById('a_file'), a_resume=document.getElementById('a_resume'), a_cover=document.getElementById('a_cover'), applyBtn=document.getElementById('applyBtn');
-const signinBtn=document.getElementById('signinBtn'); signinBtn.onclick=async()=>{ const email=prompt("Enter email"); if(!email) return; try{ await sbAuth.sendMagicLink(email); alert("Check your inbox!"); }catch(e){ alert(e.message) } };
-logoutBtn.onclick=()=>sbAuth.signOut();
+/* -----------------------
+   Dashboard page script
+   ----------------------- */
+
+// Shorthands
+const $id = (id) => document.getElementById(id);
+
+// Elements
+const tabsEl       = $id('tabs');
+const tabBtns      = [...document.querySelectorAll('.tabbar .tab')];
+const authGate     = $id('authGate');
+const loginBtn     = $id('loginBtn');
+const logoutBtn    = $id('logoutBtn');
+const companyList  = $id('companyList');
+const c_name       = $id('c_name');
+const c_website    = $id('c_website');
+const saveCompany  = $id('saveCompany');
+
+const j_company = $id('j_company'), j_title=$id('j_title'), j_desc=$id('j_desc'),
+      j_loc=$id('j_loc'), j_emp=$id('j_emp'), j_smin=$id('j_smin'), j_smax=$id('j_smax'),
+      j_curr=$id('j_curr'), j_remote=$id('j_remote'), postJob=$id('postJob');
+
+const jobsList     = $id('jobsList'), appsTable=$id('appsTable');
+
+const applyJobIdBadge = $id('applyJobId');
+const a_file = $id('a_file'), a_resume = $id('a_resume'), a_cover = $id('a_cover'), applyBtn=$id('applyBtn');
+
+const signinBtn = $id('signinBtn');
+
+// Wire login/logout using the helpers from app.js
+loginBtn.addEventListener('click', (e) => { e.preventDefault(); window.sbAuth.openLogin(); });
+logoutBtn.addEventListener('click', (e) => { e.preventDefault(); window.sbAuth.signOut(); });
+signinBtn.addEventListener('click', async () => {
+  const email = prompt("Enter email");
+  if (!email) return;
+  try { await window.sbAuth.sendMagicLink(email); alert("Check your inbox!"); }
+  catch(e){ alert(e.message); }
+});
 
 function showTab(id){
-  ['company','postjob','myjobs','apps','apply'].forEach(k=>document.getElementById(k).style.display = (k===id?'':'none'));
-  tabBtns.forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
+  ['company','postjob','myjobs','apps','apply'].forEach(k => $id(k).style.display = (k === id ? '' : 'none'));
+  tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === id));
 }
-tabBtns.forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+tabBtns.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+async function currentUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user || null;
+}
+
+// Simple storage upload (bucket "resumes"). Make the bucket public (or swap to signed URLs).
+async function uploadResume(file, userId) {
+  const path = `${userId}/${Date.now()}-${file.name}`;
+  const { data, error } = await supabase.storage.from('resumes').upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data: pub } = supabase.storage.from('resumes').getPublicUrl(path);
+  return pub?.publicUrl || null;
+}
 
 async function boot(){
-  const user = await sbAuth.currentUser();
+  const user = await currentUser();
   const params = new URLSearchParams(window.location.search);
-  const applyId=params.get('apply'); if(applyId){ applyJobIdBadge.textContent=applyId }
-  if(!user){ authGate.style.display=''; tabsEl.style.display='none'; return }
-  authGate.style.display='none'; tabsEl.style.display='flex';
-  await loadCompanies(user.id); await loadJobs(); await loadApps();
-  showTab(applyId?'apply':'company');
+  const applyId = params.get('apply');
+  if (applyId) applyJobIdBadge.textContent = applyId;
+
+  if (!user){
+    authGate.style.display='';
+    tabsEl.style.display='none';
+    return;
+  }
+
+  authGate.style.display='none';
+  tabsEl.style.display='flex';
+
+  await loadCompanies(user.id);
+  await loadJobs();
+  await loadApps();
+
+  showTab(applyId ? 'apply' : 'company');
 }
 
 async function loadCompanies(ownerId){
-  const { data, error } = await sb.supabase.from('companies').select('id,name,website').eq('owner_id', ownerId).order('created_at',{ascending:false});
+  const { data, error } = await supabase
+    .from('companies')
+    .select('id,name,website')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending:false });
+
   companyList.innerHTML=''; j_company.innerHTML='';
-  if(error){ companyList.innerHTML='<div class="card">Error: '+error.message+'</div>'; return }
-  if(!data || !data.length){ companyList.innerHTML='<div class="card">No company yet. Create one below.</div>'; return }
-  data.forEach(c=>{
-    const wrap=document.createElement('div'); wrap.className='card';
-    wrap.innerHTML=`<strong>${c.name}</strong><br><small class="muted">${c.website||''}</small>`;
+
+  if (error){
+    companyList.innerHTML = '<div class="card">Error: '+error.message+'</div>';
+    return;
+  }
+  if (!data || !data.length){
+    companyList.innerHTML = '<div class="card">No company yet. Create one below.</div>';
+    return;
+  }
+
+  data.forEach(c => {
+    const wrap = document.createElement('div'); wrap.className='card';
+    wrap.innerHTML = `<strong>${c.name}</strong><br><small class="muted">${c.website||''}</small>`;
     companyList.appendChild(wrap);
-    const opt=document.createElement('option'); opt.value=c.id; opt.textContent=c.name; j_company.appendChild(opt);
+    const opt = document.createElement('option'); opt.value=c.id; opt.textContent=c.name;
+    j_company.appendChild(opt);
   });
 }
 
-saveCompany.onclick=async()=>{
-  const user = await sbAuth.currentUser(); if(!user) return alert('Sign in first');
-  if(!c_name.value) return alert('Company name required');
-  const payload = { id: crypto.randomUUID(), owner_id: user.id, name: c_name.value.trim(), website: c_website.value.trim()||null };
-  const { error } = await sb.supabase.from('companies').insert(payload);
-  if(error){ alert(error.message); return }
-  c_name.value=''; c_website.value=''; await loadCompanies(user.id); alert('Saved.');
-};
+saveCompany.addEventListener('click', async () => {
+  const user = await currentUser();
+  if (!user) return alert('Sign in first');
+  if (!c_name.value) return alert('Company name required');
 
-postJob.onclick=async()=>{
-  const user= await sbAuth.currentUser(); if(!user) return alert('Sign in first');
-  if(!j_company.value) return alert('Select a company');
-  if(!j_title.value || !j_desc.value) return alert('Title and Description required');
   const payload = {
-    company_id:j_company.value, title:j_title.value.trim(), description:j_desc.value.trim(),
-    location:j_loc.value.trim()||null, employment:j_emp.value,
-    salary_min:j_smin.value?Number(j_smin.value):null, salary_max:j_smax.value?Number(j_smax.value):null,
-    currency:j_curr.value||'INR', is_remote:j_remote.value==='true'
+    id: crypto.randomUUID(),
+    owner_id: user.id,
+    name: c_name.value.trim(),
+    website: c_website.value.trim() || null
   };
-  const { error } = await sb.supabase.from('jobs').insert(payload);
-  if(error){ alert(error.message); return }
-  j_title.value=''; j_desc.value=''; await loadJobs(); showTab('myjobs'); alert('Job posted.');
-};
+  const { error } = await supabase.from('companies').insert(payload);
+  if (error){ alert(error.message); return; }
+  c_name.value=''; c_website.value='';
+  await loadCompanies(user.id);
+  alert('Saved.');
+});
+
+postJob.addEventListener('click', async () => {
+  const user = await currentUser();
+  if (!user) return alert('Sign in first');
+  if (!j_company.value) return alert('Select a company');
+  if (!j_title.value || !j_desc.value) return alert('Title and Description required');
+
+  const payload = {
+    company_id: j_company.value,
+    title: j_title.value.trim(),
+    description: j_desc.value.trim(),
+    location: j_loc.value.trim() || null,
+    employment: j_emp.value,
+    salary_min: j_smin.value ? Number(j_smin.value) : null,
+    salary_max: j_smax.value ? Number(j_smax.value) : null,
+    currency: j_curr.value || 'INR',
+    is_remote: j_remote.value === 'true'
+  };
+  const { error } = await supabase.from('jobs').insert(payload);
+  if (error){ alert(error.message); return; }
+  j_title.value=''; j_desc.value='';
+  await loadJobs();
+  showTab('myjobs');
+  alert('Job posted.');
+});
 
 async function loadJobs(){
-  const r = await sb.supabase.from('jobs').select('id,title,location,employment,currency,salary_min,salary_max,status,companies!inner(owner_id,name)').order('created_at',{ascending:false}).limit(100);
+  const r = await supabase
+    .from('jobs')
+    .select('id,title,location,employment,currency,salary_min,salary_max,status,companies!inner(owner_id,name)')
+    .order('created_at', { ascending:false })
+    .limit(100);
+
   jobsList.innerHTML='';
-  if(r.error){ jobsList.innerHTML='<div class="card">Error: '+r.error.message+'</div>'; return }
-  const rows = (r.data||[]).map(j=>`<tr>
-    <td>${j.title}</td><td>${j.location||''}</td><td>${j.employment||''}</td>
-    <td>${j.currency||''} ${j.salary_min||''}-${j.salary_max||''}</td>
-    <td><span class="badge">${j.status}</span></td>
-    <td class="row">
-      <button class="btn warn" data-status="Closed" data-id="${j.id}">Close</button>
-      <button class="btn" data-status="Active" data-id="${j.id}">Activate</button>
-      <button class="btn bad" data-del="${j.id}">Delete</button>
-    </td>
-  </tr>`).join('');
-  jobsList.innerHTML = `<table class="table"><thead><tr><th>Title</th><th>Location</th><th>Employment</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
-  jobsList.querySelectorAll('button[data-status]').forEach(b=>b.onclick=()=>updateJobStatus(b.dataset.id, b.dataset.status));
-  jobsList.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteJob(b.dataset.del));
+
+  if (r.error){
+    jobsList.innerHTML = '<div class="card">Error: '+r.error.message+'</div>';
+    return;
+  }
+
+  const rows = (r.data||[]).map(j => `
+    <tr>
+      <td>${j.title}</td><td>${j.location||''}</td><td>${j.employment||''}</td>
+      <td>${j.currency||''} ${j.salary_min||''}-${j.salary_max||''}</td>
+      <td><span class="badge">${j.status}</span></td>
+      <td class="row">
+        <button class="btn warn" data-status="Closed" data-id="${j.id}">Close</button>
+        <button class="btn" data-status="Active" data-id="${j.id}">Activate</button>
+        <button class="btn bad" data-del="${j.id}">Delete</button>
+      </td>
+    </tr>`).join('');
+
+  jobsList.innerHTML = `
+    <table class="table">
+      <thead><tr>
+        <th>Title</th><th>Location</th><th>Employment</th>
+        <th>Salary</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  jobsList.querySelectorAll('button[data-status]')
+    .forEach(b => b.addEventListener('click', () => updateJobStatus(b.dataset.id, b.dataset.status)));
+  jobsList.querySelectorAll('button[data-del]')
+    .forEach(b => b.addEventListener('click', () => deleteJob(b.dataset.del)));
 }
 
-async function updateJobStatus(id,status){ const { error } = await sb.supabase.from('jobs').update({status}).eq('id', id); if(error) return alert(error.message); await loadJobs(); }
-async function deleteJob(id){ if(!confirm('Delete this job?')) return; const { error } = await sb.supabase.from('jobs').delete().eq('id', id); if(error) return alert(error.message); await loadJobs(); }
+async function updateJobStatus(id,status){
+  const { error } = await supabase.from('jobs').update({ status }).eq('id', id);
+  if (error) return alert(error.message);
+  await loadJobs();
+}
+
+async function deleteJob(id){
+  if (!confirm('Delete this job?')) return;
+  const { error } = await supabase.from('jobs').delete().eq('id', id);
+  if (error) return alert(error.message);
+  await loadJobs();
+}
 
 async function loadApps(){
-  let { data, error } = await sb.supabase.from('v_employer_applications').select('*').order('applied_at',{ascending:false}).limit(200);
-  if(error){ appsTable.innerHTML='<div class="card">No view or error: '+error.message+'</div>'; return }
-  if(!data || !data.length){ appsTable.innerHTML='<div class="card">No applications yet.</div>'; return }
-  const rows = data.map(r=>`<tr>
-    <td>${r.applied_at?.slice(0,10)}</td>
-    <td>${r.applicant_name}<br><small class="muted">${r.applicant_email}</small></td>
-    <td>${r.company_name}</td><td>${r.job_title}</td>
-    <td><span class="badge">${r.application_status}</span></td>
-    <td>${r.resume_url?`<a href="${r.resume_url}" target="_blank">Resume</a>`:''}</td>
-  </tr>`).join('');
-  appsTable.innerHTML = '<table class="table"><thead><tr><th>Date</th><th>Applicant</th><th>Company</th><th>Job</th><th>Status</th><th>Resume</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  const { data, error } = await supabase
+    .from('v_employer_applications')
+    .select('*')
+    .order('applied_at', { ascending:false })
+    .limit(200);
+
+  if (error){
+    appsTable.innerHTML = '<div class="card">No view or error: '+error.message+'</div>';
+    return;
+  }
+  if (!data || !data.length){
+    appsTable.innerHTML = '<div class="card">No applications yet.</div>';
+    return;
+  }
+
+  const rows = data.map(r => `
+    <tr>
+      <td>${r.applied_at?.slice(0,10)}</td>
+      <td>${r.applicant_name}<br><small class="muted">${r.applicant_email}</small></td>
+      <td>${r.company_name}</td><td>${r.job_title}</td>
+      <td><span class="badge">${r.application_status}</span></td>
+      <td>${r.resume_url ? `<a href="${r.resume_url}" target="_blank">Resume</a>` : ''}</td>
+    </tr>`).join('');
+
+  appsTable.innerHTML = `
+    <table class="table">
+      <thead><tr>
+        <th>Date</th><th>Applicant</th><th>Company</th>
+        <th>Job</th><th>Status</th><th>Resume</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
-applyBtn.onclick=async()=>{
-  const params=new URLSearchParams(window.location.search); const jobId=params.get('apply');
-  const user = await sbAuth.currentUser(); if(!user) return alert('Sign in first');
-  if(!jobId) return alert('Missing job id');
+applyBtn.addEventListener('click', async () => {
+  const params = new URLSearchParams(window.location.search);
+  const jobId = params.get('apply');
+  const user = await currentUser();
+  if (!user) return alert('Sign in first');
+  if (!jobId) return alert('Missing job id');
+
   let resume = a_resume.value?.trim() || null;
-  if(a_file.files && a_file.files[0]){
-    try{ resume = await sbUploads.uploadResume(a_file.files[0], user.id) }
-    catch(e){ alert('Upload failed: '+e.message); return }
+  if (a_file.files && a_file.files[0]) {
+    try { resume = await uploadResume(a_file.files[0], user.id); }
+    catch(e){ alert('Upload failed: ' + e.message); return; }
   }
-  const payload={ job_id:jobId, applicant_id:user.id, cover_letter:a_cover.value||null, resume_url:resume };
-  const { error } = await sb.supabase.from('applications').insert(payload);
-  if(error){ alert(error.message); return }
-  a_cover.value=''; a_resume.value=''; a_file.value=''; alert('Application submitted.');
-};
+
+  const payload = {
+    job_id: jobId,
+    applicant_id: user.id,
+    cover_letter: a_cover.value || null,
+    resume_url: resume
+  };
+  const { error } = await supabase.from('applications').insert(payload);
+  if (error){ alert(error.message); return; }
+  a_cover.value=''; a_resume.value=''; a_file.value='';
+  alert('Application submitted.');
+});
 
 boot();
 </script>
-  <script src="config.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
 </body>
 </html>
