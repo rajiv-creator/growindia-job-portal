@@ -119,8 +119,8 @@
 
   <!-- Scripts (defer + cache-busted) -->
   <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script defer src="config.js?v=4"></script>
-  <script defer src="app.js?v=4"></script>
+  <script defer src="config.js?v=8"></script>
+  <script defer src="app.js?v=8"></script>
 
   <script>
   window.addEventListener('load', async () => {
@@ -198,6 +198,36 @@
         });
       }
 
+      // Handle company create
+      const companyForm = document.getElementById('companyForm');
+      if (companyForm){
+        companyForm.addEventListener('submit', async (e)=>{
+          e.preventDefault();
+          const name  = document.getElementById('co_name').value.trim();
+          const site  = document.getElementById('co_site').value.trim() || null;
+          const owner = document.getElementById('co_owner_email').value.trim();
+          const msgEl = document.getElementById('companyMsg');
+          msgEl.textContent = 'Creating…';
+
+          let owner_id = null;
+          if (owner){
+            const r = await client.from('profiles')
+              .select('id,email')
+              .ilike('email', owner)
+              .maybeSingle();
+            if (r.error){ alert(r.error.message); msgEl.textContent=''; return; }
+            owner_id = r.data?.id || null;
+          }
+
+          const ins = await client.from('companies').insert([{ name, website: site, owner_id }]).select('id').maybeSingle();
+          if (ins.error){ alert(ins.error.message); msgEl.textContent=''; return; }
+          msgEl.textContent = 'Created ✔';
+          companyForm.reset();
+          await Promise.all([loadCompanyOptions(), loadCompaniesTable(), loadCounts()]);
+          setTimeout(()=>msgEl.textContent='', 1500);
+        });
+      }
+
       // ---- JOBS (list + create + actions)
       async function loadJobsTable(){
         const r = await client.from('jobs')
@@ -247,6 +277,32 @@
               return;
             }
           });
+        });
+      }
+
+      // Handle job create
+      const jobForm = document.getElementById('jobForm');
+      if (jobForm){
+        jobForm.addEventListener('submit', async (e)=>{
+          e.preventDefault();
+          const company_id = document.getElementById('f_company').value || null;
+          const title      = document.getElementById('f_title').value.trim();
+          const location   = document.getElementById('f_location').value.trim() || null;
+          const employment = document.getElementById('f_employment').value;
+          const is_remote  = document.getElementById('f_remote').value === 'true';
+          const salary_min = document.getElementById('f_sal_min').value ? parseInt(document.getElementById('f_sal_min').value,10) : null;
+          const salary_max = document.getElementById('f_sal_max').value ? parseInt(document.getElementById('f_sal_max').value,10) : null;
+          const currency   = document.getElementById('f_currency').value.trim() || null;
+          const msgEl = document.getElementById('jobFormMsg');
+          msgEl.textContent = 'Creating…';
+
+          const payload = { company_id, title, location, employment, is_remote, salary_min, salary_max, currency, status:'active', featured:false };
+          const ins = await client.from('jobs').insert([payload]).select('id').maybeSingle();
+          if (ins.error){ alert(ins.error.message); msgEl.textContent=''; return; }
+          msgEl.textContent = 'Created ✔';
+          jobForm.reset();
+          await Promise.all([loadJobsTable(), loadCounts()]);
+          setTimeout(()=>msgEl.textContent='', 1500);
         });
       }
 
