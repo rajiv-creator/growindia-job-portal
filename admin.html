@@ -117,332 +117,242 @@
     </div>
   </div>
 
- <!-- Scripts (cache-busted) -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="config.js?v=3"></script>
-<script src="app.js?v=3"></script>
+  <!-- Scripts (defer + cache-busted) -->
+  <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script defer src="config.js?v=4"></script>
+  <script defer src="app.js?v=4"></script>
+
   <script>
-    // Robust client: use window.sb.supabase if present; else create our own.
-    const client = (window.sb && window.sb.supabase)
-      ? window.sb.supabase
-      : window.supabase.createClient(
-          window.__SUPABASE_URL__,
-          window.__SUPABASE_ANON_KEY__,
-          { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } }
-        );
+  window.addEventListener('load', async () => {
+    try {
+      console.log('[Admin] boot');
 
-    async function isAdmin(){
-      if (window.sbAuth && typeof window.sbAuth.isAdmin === 'function') return window.sbAuth.isAdmin();
+      // Create client (use sb.supabase if app.js loaded)
+      const client = (window.sb && window.sb.supabase)
+        ? window.sb.supabase
+        : window.supabase.createClient(
+            window.__SUPABASE_URL__,
+            window.__SUPABASE_ANON_KEY__,
+            { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } }
+          );
+
+      const el = id => document.getElementById(id);
+      const renderError = (id, msg) => { el(id).innerHTML = `<div class="error"><strong>Error:</strong> ${msg}</div>`; };
+      const renderTable = (id, rows, cols) => {
+        const host = el(id);
+        if (!rows || rows.length === 0){ host.innerHTML = '<em>No data</em>'; return; }
+        const thead = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead>';
+        const tbody = '<tbody>' + rows.map(r => (
+          '<tr>' + cols.map(c => `<td>${(r[c.key] ?? '')}</td>`).join('') + '</tr>'
+        )).join('') + '</tbody>';
+        host.innerHTML = `<table>${thead}${tbody}</table>`;
+      };
+
+      // Guard
       const { data: { user } } = await client.auth.getUser();
-      if (!user) return false;
-      const r = await client.from('profiles').select('role').eq('id', user.id).maybeSingle();
-      return ['admin','super_admin'].includes(String(r.data?.role||'').toLowerCase());
-    }
+      if (!user){ renderError('counts','Not logged in.'); console.warn('[Admin] no session'); return; }
 
-    const el = id => document.getElementById(id);
-    function renderError(targetId, msg){ el(targetId).innerHTML = `<div class="error"><strong>Error:</strong> ${msg}</div>`; }
-    function renderTable(targetId, rows, columns){
-      const host = el(targetId);
-      if (!rows || rows.length === 0){ host.innerHTML = '<em>No data</em>'; return; }
-      const thead = '<thead><tr>' + columns.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead>';
-      const tbody = '<tbody>' + rows.map(r => (
-        '<tr>' + columns.map(c => `<td>${(r[c.key] ?? '')}</td>`).join('') + '</tr>'
-      )).join('') + '</tbody>';
-      host.innerHTML = `<table>${thead}${tbody}</table>`;
-    }
+      async function isAdmin(){
+        if (window.sbAuth?.isAdmin) return window.sbAuth.isAdmin();
+        const r = await client.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (r.error){ console.error('[Admin] profiles error', r.error); return false; }
+        return ['admin','super_admin'].includes(String(r.data?.role||'').toLowerCase());
+      }
+      if (!(await isAdmin())){ renderError('counts','You are not an admin.'); console.warn('[Admin] not admin'); return; }
 
-    // Guard & boot
-    async function guardAndLoad(){
-      const { data: { user } } = await client.auth.getUser();
-      if (!user) { location.href = '/'; return; }
-      if (!(await isAdmin())) { location.href = '/'; return; }
+      // ---- COUNTS
+      async function loadCounts(){
+        const r = await client.from('v_admin_counts').select('*').maybeSingle();
+        if (r.error){ console.error('[Admin] v_admin_counts', r.error); renderError('counts', r.error.message); return; }
+        const data = r.data || {};
+        for (const k of Object.keys(data)){ const t = el('c_'+k); if (t) t.textContent = data[k]; }
+      }
 
-      await Promise.all([loadCounts(), initCompanies(), initJobs(), loadApplications(), loadProfiles()]);
-    }
-    client.auth.onAuthStateChange(async (_e, session) => {
-      if (!session?.user) { location.href = '/'; return; }
-      if (!(await isAdmin())) { location.href = '/'; }
-    });
-
-    // ----- COUNTS -----
-    async function loadCounts(){
-      const r = await client.from('v_admin_counts').select('*').maybeSingle();
-      if (r.error){ renderError('counts', r.error.message); return; }
-      const data = r.data || {};
-      for (const k of Object.keys(data)){ const t = el('c_' + k); if (t) t.textContent = data[k]; }
-    }
-
-    // ----- COMPANIES -----
-    async function initCompanies(){
-      const form = el('companyForm'), msg = el('companyMsg');
-      form.addEventListener('submit', async e=>{
-        e.preventDefault(); msg.textContent = 'Creating…';
-        const name = el('co_name').value.trim();
-        const website = el('co_site').value.trim() || null;
-        const ownerEmail = el('co_owner_email').value.trim().toLowerCase();
-
-        let owner_id = null;
-        if (ownerEmail){
-          const r = await client.from('profiles').select('id').eq('email', ownerEmail).maybeSingle();
-          if (r.error){ msg.textContent = 'Error: '+r.error.message; return; }
-          if (!r.data){ msg.textContent = 'No user with that email.'; return; }
-          owner_id = r.data.id;
-        }
-
-        const ins = await client.from('companies').insert([{ name, website, owner_id }]).select('id').single();
-        if (ins.error){ msg.textContent = 'Error: '+ins.error.message; return; }
-        msg.textContent = 'Created ✔';
-        form.reset();
-        await Promise.all([loadCompanyOptions(), loadCompaniesTable(), loadCounts()]);
-        setTimeout(()=>msg.textContent='',1200);
-      });
-
-      await Promise.all([loadCompanyOptions(), loadCompaniesTable()]);
-    }
-
-    async function loadCompaniesTable(){
-      const r = await client.from('companies').select('id,name,website,owner_id,created_at').order('created_at',{ascending:false}).limit(50);
-      if (r.error){ renderError('tbl_companies', r.error.message); return; }
-      const rows = (r.data||[]).map(c => ({
-        ...c,
-        actions: `
-          <button class="btn ghost" data-act="editCompany" data-id="${c.id}">Edit</button>
-          <button class="btn ghost" data-act="deleteCompany" data-id="${c.id}">Delete</button>`
-      }));
-      const target = 'tbl_companies';
-      renderTable(target, rows, [
-        {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
-        {key:'owner_id',label:'Owner ID'}, {key:'created_at',label:'Created'}, {key:'actions',label:'Actions'}
-      ]);
-      const host = el(target);
-      host.querySelectorAll('[data-act="deleteCompany"]').forEach(btn=>{
-        btn.addEventListener('click', async ()=>{
-          if (!confirm('Delete this company and its jobs?')) return;
-          const id = btn.getAttribute('data-id');
-          const d = await client.from('companies').delete().eq('id', id);
-          if (d.error) alert(d.error.message);
-          await Promise.all([loadCompaniesTable(), loadCounts(), loadJobsTable()]);
-        });
-      });
-      host.querySelectorAll('[data-act="editCompany"]').forEach(btn=>{
-        btn.addEventListener('click', async ()=>{
-          const id = btn.getAttribute('data-id');
-          const name = prompt('New name?'); if (name===null) return;
-          const website = prompt('New website? (or blank)');
-          const ownerEmail = prompt('New owner email? (or blank)');
-          let owner_id = null;
-          if (ownerEmail && ownerEmail.trim()){
-            const u = await client.from('profiles').select('id').eq('email', ownerEmail.trim().toLowerCase()).maybeSingle();
-            if (u.error){ alert(u.error.message); return; }
-            if (!u.data){ alert('No user with that email'); return; }
-            owner_id = u.data.id;
-          }
-          const u2 = await client.from('companies').update({
-            name: name.trim(),
-            website: (website||'').trim() || null,
-            owner_id
-          }).eq('id', id);
-          if (u2.error){ alert(u2.error.message); return; }
-          await Promise.all([loadCompaniesTable(), loadCompanyOptions()]);
-        });
-      });
-    }
-
-    async function loadCompanyOptions(){
-      const sel = el('f_company'); sel.innerHTML = '<option value="">Loading…</option>';
-      const r = await client.from('companies').select('id,name').order('name');
-      if (r.error){ sel.innerHTML = '<option value="">(error)</option>'; return; }
-      sel.innerHTML = (r.data||[]).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    }
-
-    // ----- JOBS -----
-    async function initJobs(){
-      const form = el('jobForm'), msg = el('jobFormMsg');
-      form.addEventListener('submit', async e=>{
-        e.preventDefault(); msg.textContent='Creating…';
-        const company_id = el('f_company').value;
-        const title      = el('f_title').value.trim();
-        const location   = el('f_location').value.trim();
-        const employment = el('f_employment').value;
-        const is_remote  = el('f_remote').value === 'true';
-        const salary_min = el('f_sal_min').value ? Number(el('f_sal_min').value) : null;
-        const salary_max = el('f_sal_max').value ? Number(el('f_sal_max').value) : null;
-        const currency   = el('f_currency').value.trim() || null;
-
-        if (!company_id || !title){ msg.textContent='Company and Title are required.'; return; }
-
-        const r = await client.from('jobs').insert([{
-          company_id, title, location, employment, is_remote, salary_min, salary_max, currency, status:'active', featured:false
-        }]).select('id').single();
-
-        if (r.error){ msg.textContent = 'Error: ' + r.error.message; }
-        else{
-          msg.textContent = 'Created ✔';
-          form.reset();
-          await Promise.all([loadJobsTable(), loadCounts()]);
-          setTimeout(()=>msg.textContent='',1200);
-        }
-      });
-
-      await loadJobsTable();
-    }
-
-    async function loadJobsTable(){
-      // Admin view: fetch ALL jobs with company name
-      const r = await client.from('jobs')
-        .select('id,title,location,status,featured,created_at,companies(name)')
-        .order('created_at',{ascending:false}).limit(50);
-      if (r.error){ renderError('tbl_jobs', r.error.message); return; }
-      const rows = (r.data||[]).map(x => ({
-        id: x.id,
-        title: x.title,
-        company_name: x.companies?.name || '',
-        location: x.location || '',
-        status: x.status,
-        featured: x.featured,
-        created_at: x.created_at,
-        actions: `
-          <button class="btn ghost" data-act="toggleStatus" data-id="${x.id}">${x.status==='active'?'Close':'Open'}</button>
-          <button class="btn ghost" data-act="toggleFeatured" data-id="${x.id}">${x.featured?'Unfeature':'Feature'}</button>
-          <button class="btn ghost" data-act="delete" data-id="${x.id}">Delete</button>
-        `
-      }));
-      renderTable('tbl_jobs', rows, [
-        {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
-        {key:'location',label:'Location'}, {key:'status',label:'Status'},
-        {key:'featured',label:'Featured'}, {key:'created_at',label:'Created'},
-        {key:'actions',label:'Actions'}
-      ]);
-
-      const host = el('tbl_jobs');
-      host.querySelectorAll('[data-act]').forEach(btn=>{
-        btn.addEventListener('click', async ()=>{
-          const id = btn.getAttribute('data-id');
-          const act = btn.getAttribute('data-act');
-          if (act==='delete'){
-            if (!confirm('Delete this job?')) return;
-            const d = await client.from('jobs').delete().eq('id', id);
+      // ---- COMPANIES (list + create)
+      async function loadCompanyOptions(){
+        const sel = el('f_company'); if (!sel) return;
+        const r = await client.from('companies').select('id,name').order('name');
+        if (r.error){ sel.innerHTML = '<option value="">(error)</option>'; console.error('[Admin] companies (options)', r.error); return; }
+        sel.innerHTML = (r.data||[]).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      }
+      async function loadCompaniesTable(){
+        const r = await client.from('companies').select('id,name,website,owner_id,created_at').order('created_at',{ascending:false}).limit(50);
+        if (r.error){ renderError('tbl_companies', r.error.message); console.error('[Admin] companies (table)', r.error); return; }
+        const rows = (r.data||[]).map(c => ({
+          ...c,
+          actions: `<button class="btn ghost" data-act="deleteCompany" data-id="${c.id}">Delete</button>`
+        }));
+        const target = 'tbl_companies';
+        renderTable(target, rows, [
+          {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
+          {key:'owner_id',label:'Owner ID'}, {key:'created_at',label:'Created'}, {key:'actions',label:'Actions'}
+        ]);
+        el(target).querySelectorAll('[data-act="deleteCompany"]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            if (!confirm('Delete this company and its jobs?')) return;
+            const id = btn.getAttribute('data-id');
+            const d = await client.from('companies').delete().eq('id', id);
             if (d.error) alert(d.error.message);
-            await Promise.all([loadJobsTable(), loadCounts()]);
-            return;
-          }
-          if (act==='toggleStatus'){
-            const row = rows.find(r=>r.id===id);
-            const next = row.status==='active' ? 'closed' : 'active';
-            const u = await client.from('jobs').update({status:next}).eq('id', id);
-            if (u.error) alert(u.error.message);
-            await Promise.all([loadJobsTable(), loadCounts()]);
-            return;
-          }
-          if (act==='toggleFeatured'){
-            const row = rows.find(r=>r.id===id);
-            const u = await client.from('jobs').update({featured:!row.featured}).eq('id', id);
-            if (u.error) alert(u.error.message);
-            await Promise.all([loadJobsTable(), loadCounts()]);
-            return;
-          }
+            await Promise.all([loadCompaniesTable(), loadCounts(), loadJobsTable()]);
+          });
         });
-      });
-    }
+      }
 
-    // ----- APPLICATIONS -----
-    async function loadApplications(){
-      const a = await client.from('applications')
-        .select('id,job_id,applicant_id,status,created_at')
-        .order('created_at',{ascending:false}).limit(100);
-      if (a.error){ renderError('tbl_apps', a.error.message); return; }
-      const apps = a.data || [];
+      // ---- JOBS (list + create + actions)
+      async function loadJobsTable(){
+        const r = await client.from('jobs')
+          .select('id,title,location,status,featured,created_at,companies(name)')
+          .order('created_at',{ascending:false}).limit(50);
+        if (r.error){ renderError('tbl_jobs', r.error.message); console.error('[Admin] jobs', r.error); return; }
+        const rows = (r.data||[]).map(x => ({
+          id: x.id, title: x.title, company_name: x.companies?.name || '',
+          location: x.location || '', status: x.status, featured: x.featured, created_at: x.created_at,
+          actions: `
+            <button class="btn ghost" data-act="toggleStatus" data-id="${x.id}">${x.status==='active'?'Close':'Open'}</button>
+            <button class="btn ghost" data-act="toggleFeatured" data-id="${x.id}">${x.featured?'Unfeature':'Feature'}</button>
+            <button class="btn ghost" data-act="delete" data-id="${x.id}">Delete</button>`
+        }));
+        const target = 'tbl_jobs';
+        renderTable(target, rows, [
+          {key:'id',label:'ID'}, {key:'title',label:'Title'}, {key:'company_name',label:'Company'},
+          {key:'location',label:'Location'}, {key:'status',label:'Status'},
+          {key:'featured',label:'Featured'}, {key:'created_at',label:'Created'},
+          {key:'actions',label:'Actions'}
+        ]);
+        const host = el(target);
+        host.querySelectorAll('[data-act]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            const id = btn.getAttribute('data-id');
+            const act = btn.getAttribute('data-act');
+            if (act==='delete'){
+              if (!confirm('Delete this job?')) return;
+              const d = await client.from('jobs').delete().eq('id', id);
+              if (d.error) alert(d.error.message);
+              await Promise.all([loadJobsTable(), loadCounts()]);
+              return;
+            }
+            if (act==='toggleStatus'){
+              const row = rows.find(r=>r.id===id);
+              const next = row.status==='active' ? 'closed' : 'active';
+              const u = await client.from('jobs').update({status:next}).eq('id', id);
+              if (u.error) alert(u.error.message);
+              await Promise.all([loadJobsTable(), loadCounts()]);
+              return;
+            }
+            if (act==='toggleFeatured'){
+              const row = rows.find(r=>r.id===id);
+              const u = await client.from('jobs').update({featured:!row.featured}).eq('id', id);
+              if (u.error) alert(u.error.message);
+              await Promise.all([loadJobsTable(), loadCounts()]);
+              return;
+            }
+          });
+        });
+      }
 
-      const jobIds = [...new Set(apps.map(x=>x.job_id))];
-      const userIds = [...new Set(apps.map(x=>x.applicant_id))];
+      // ---- APPLICATIONS
+      async function loadApplications(){
+        const a = await client.from('applications')
+          .select('id,job_id,applicant_id,status,created_at')
+          .order('created_at',{ascending:false}).limit(100);
+        if (a.error){ renderError('tbl_apps', a.error.message); console.error('[Admin] apps', a.error); return; }
+        const apps = a.data || [];
+        const jobIds = [...new Set(apps.map(x=>x.job_id))];
+        const userIds = [...new Set(apps.map(x=>x.applicant_id))];
+        const j = await client.from('jobs').select('id,title,companies(name)').in('id', jobIds);
+        const p = await client.from('profiles').select('id,full_name,email').in('id', userIds);
+        const jobMap = new Map((j.data||[]).map(r => [r.id, r]));
+        const userMap = new Map((p.data||[]).map(r => [r.id, r]));
+        const opts = ['pending','reviewed','shortlisted','hired','rejected'];
+        const rows = apps.map(app => {
+          const job = jobMap.get(app.job_id) || {};
+          const user = userMap.get(app.applicant_id) || {};
+          const when = new Date(app.created_at).toLocaleString();
+          const select = `<select data-app="${app.id}" data-field="status">
+            ${opts.map(s => `<option value="${s}" ${s===app.status?'selected':''}>${s}</option>`).join('')}
+          </select>`;
+          return {
+            job: `${job.title||'(Job)'} — ${job.companies?.name||''}`,
+            applicant: `${user.full_name||''} ${user.email?('('+user.email+')'):''}`,
+            status: select,
+            created_at: when,
+            actions: `<button class="btn ghost" data-act="delApp" data-id="${app.id}">Delete</button>`
+          };
+        });
+        const target = 'tbl_apps';
+        renderTable(target, rows, [
+          {key:'job',label:'Job'}, {key:'applicant',label:'Applicant'},
+          {key:'status',label:'Status'}, {key:'created_at',label:'Applied'},
+          {key:'actions',label:'Actions'}
+        ]);
+        const host = el(target);
+        host.querySelectorAll('select[data-app]').forEach(sel=>{
+          sel.addEventListener('change', async ()=>{
+            const id = sel.getAttribute('data-app');
+            const v = sel.value;
+            const r = await client.from('applications').update({status:v}).eq('id', id);
+            if (r.error) alert(r.error.message); else await loadCounts();
+          });
+        });
+        host.querySelectorAll('[data-act="delApp"]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            if (!confirm('Delete this application?')) return;
+            const id = btn.getAttribute('data-id');
+            const r = await client.from('applications').delete().eq('id', id);
+            if (r.error) alert(r.error.message);
+            else { await Promise.all([loadApplications(), loadCounts()]); }
+          });
+        });
+      }
 
-      const j = await client.from('jobs').select('id,title,company_id,companies(name)').in('id', jobIds);
-      const p = await client.from('profiles').select('id,full_name,email').in('id', userIds);
+      // ---- PROFILES
+      async function loadProfiles(){
+        const r = await client.from('profiles')
+          .select('id,full_name,email,role,created_at')
+          .order('created_at',{ascending:false}).limit(100);
+        if (r.error){ renderError('tbl_profiles', r.error.message); console.error('[Admin] profiles', r.error); return; }
+        const roleOpts = ['user','admin','super_admin'];
+        const rows = (r.data||[]).map(x => ({
+          id: x.id, full_name: x.full_name || '', email: x.email || '',
+          role: `<select data-prof="${x.id}">
+                   ${roleOpts.map(o=>`<option value="${o}" ${String(x.role||'').toLowerCase()===o?'selected':''}>${o}</option>`).join('')}
+                 </select>`,
+          created_at: x.created_at
+        }));
+        const target = 'tbl_profiles';
+        renderTable(target, rows, [
+          {key:'id',label:'ID'}, {key:'full_name',label:'Name'},
+          {key:'email',label:'Email'}, {key:'role',label:'Role'},
+          {key:'created_at',label:'Created'}
+        ]);
+        el(target).querySelectorAll('select[data-prof]').forEach(sel=>{
+          sel.addEventListener('change', async ()=>{
+            const id = sel.getAttribute('data-prof');
+            const v = sel.value;
+            const r = await client.from('profiles').update({role:v}).eq('id', id);
+            if (r.error) alert(r.error.message); else alert('Updated ✔');
+          });
+        });
+      }
 
-      const jobMap = new Map((j.data||[]).map(r => [r.id, r]));
-      const userMap = new Map((p.data||[]).map(r => [r.id, r]));
-
-      const statusOpts = ['pending','reviewed','shortlisted','hired','rejected'];
-
-      const rows = apps.map(app => {
-        const job = jobMap.get(app.job_id) || {};
-        const user = userMap.get(app.applicant_id) || {};
-        const when = new Date(app.created_at).toLocaleString();
-        const select = `<select data-app="${app.id}" data-field="status">
-          ${statusOpts.map(s => `<option value="${s}" ${s===app.status?'selected':''}>${s}</option>`).join('')}
-        </select>`;
-        return {
-          job: `${job.title||'(Job)'} — ${job.companies?.name||''}`,
-          applicant: `${user.full_name||''} ${user.email?('('+user.email+')'):''}`,
-          status: select,
-          created_at: when,
-          actions: `<button class="btn ghost" data-act="delApp" data-id="${app.id}">Delete</button>`
-        };
-      });
-
-      const target = 'tbl_apps';
-      renderTable(target, rows, [
-        {key:'job',label:'Job'}, {key:'applicant',label:'Applicant'},
-        {key:'status',label:'Status'}, {key:'created_at',label:'Applied'},
-        {key:'actions',label:'Actions'}
+      // Boot load
+      await Promise.all([
+        loadCounts(),
+        loadCompanyOptions(),
+        loadCompaniesTable(),
+        loadJobsTable(),
+        loadApplications(),
+        loadProfiles()
       ]);
 
-      const host = el(target);
-      host.querySelectorAll('select[data-app]').forEach(sel=>{
-        sel.addEventListener('change', async ()=>{
-          const id = sel.getAttribute('data-app');
-          const v = sel.value;
-          const r = await client.from('applications').update({status:v}).eq('id', id);
-          if (r.error) alert(r.error.message);
-          else await loadCounts();
-        });
-      });
-      host.querySelectorAll('[data-act="delApp"]').forEach(btn=>{
-        btn.addEventListener('click', async ()=>{
-          if (!confirm('Delete this application?')) return;
-          const id = btn.getAttribute('data-id');
-          const r = await client.from('applications').delete().eq('id', id);
-          if (r.error) alert(r.error.message);
-          else { await Promise.all([loadApplications(), loadCounts()]); }
-        });
-      });
+      console.log('[Admin] loaded');
+    } catch (e) {
+      console.error('[Admin] fatal', e);
+      const grid = document.getElementById('counts');
+      if (grid) grid.insertAdjacentHTML('afterend',
+        `<div class="error"><strong>Admin init failed:</strong> ${e?.message || e}</div>`);
     }
-
-    // ----- ACCOUNTS (profiles) -----
-    async function loadProfiles(){
-      const r = await client.from('profiles')
-        .select('id,full_name,email,role,created_at')
-        .order('created_at',{ascending:false}).limit(100);
-      if (r.error){ renderError('tbl_profiles', r.error.message); return; }
-      const roleOpts = ['user','admin','super_admin'];
-      const rows = (r.data||[]).map(x => ({
-        id: x.id,
-        full_name: x.full_name || '',
-        email: x.email || '',
-        role: `<select data-prof="${x.id}" data-field="role">
-                 ${roleOpts.map(o=>`<option value="${o}" ${String(x.role||'').toLowerCase()===o?'selected':''}>${o}</option>`).join('')}
-               </select>`,
-        created_at: x.created_at
-      }));
-      const target = 'tbl_profiles';
-      renderTable(target, rows, [
-        {key:'id',label:'ID'}, {key:'full_name',label:'Name'},
-        {key:'email',label:'Email'}, {key:'role',label:'Role'},
-        {key:'created_at',label:'Created'}
-      ]);
-      el(target).querySelectorAll('select[data-prof]').forEach(sel=>{
-        sel.addEventListener('change', async ()=>{
-          const id = sel.getAttribute('data-prof');
-          const v = sel.value;
-          const r = await client.from('profiles').update({role:v}).eq('id', id);
-          if (r.error) alert(r.error.message);
-          else alert('Updated ✔');
-        });
-      });
-    }
-
-    // Kick off
-    guardAndLoad();
+  });
   </script>
 </body>
 </html>
