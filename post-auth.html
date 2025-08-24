@@ -1,91 +1,90 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Account • GrowIndia</title>
-  <link rel="preconnect" href="https://unpkg.com">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account</title>
+
+  <!-- Supabase client (v2) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- Your project config: must be PLAIN JS (no <script> tags inside the file) -->
   <script src="config.js?v=14"></script>
+
   <style>
-    :root{--bg:#f2f5fb;--card:#fff;--muted:#6b7280;--text:#111827;--brand:#2563eb;}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    .wrap{max-width:980px;margin:48px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid #e5e7eb;border-radius:14px;padding:26px 28px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-    h1{font-size:28px;margin:0 0 8px}
-    .muted{color:var(--muted)}
-    .row{display:flex;gap:12px;margin-top:14px}
-    .btn{background:#111827;color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .btn.alt{background:#e5e7eb;color:#111827}
-    .btn.primary{background:var(--brand)}
+    :root { --brand:#2563eb; --card:#fff; --text:#0f172a; --muted:#475569; --bg:#f8fafc; }
+    *{ box-sizing: border-box; }
+    html,body{ height:100%; margin:0; }
+    body{ background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    .wrap{ min-height:100%; display:grid; place-items:center; padding:24px; }
+    .card{
+      background:var(--card); width:100%; max-width:780px; padding:28px 28px 22px;
+      border:1px solid #e2e8f0; border-radius:14px; box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    h1{ margin:0 0 6px 0; font-size:24px; }
+    .muted{ color:var(--muted); margin:8px 0 18px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+    .btn{ display:inline-block; padding:10px 16px; border-radius:10px; text-decoration:none; border:1px solid #dbeafe; }
+    .btn.primary{ background:var(--brand); color:#fff; border-color:transparent; }
+    .btn.grey{ background:#f1f5f9; color:#0f172a; border-color:#e2e8f0; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <h1>Account</h1>
-      <p id="status" class="muted">Checking session...</p>
+      <p id="who" class="muted">Checking session…</p>
+
       <div class="row">
-        <button id="goAdmin" class="btn primary">Go to Admin</button>
-        <button id="logoutBtn" class="btn alt">Logout</button>
-        <a class="btn alt" href="/">Back to site</a>
+        <!-- ANCHOR so it works even if JS fails -->
+        <a id="goAdmin" class="btn primary" href="/admin.html">Go to Admin</a>
+        <button id="logoutBtn" class="btn grey" type="button">Logout</button>
+        <a class="btn grey" href="/index.html">Back to site</a>
       </div>
     </div>
   </div>
 
-<script>
-(function(){
-  const $ = (id) => document.getElementById(id);
-  const set = (t) => ($('status').textContent = t);
-
-  async function ensureClient(){
-    // window.supabase is created in config.js. Guard just in case.
-    if (window.supabase && window.supabase.auth) return window.supabase;
-    if (typeof supabase === 'undefined') {
-      set('Supabase client not found (config.js).');
-      throw new Error('supabase global missing');
-    }
-    if (!window.supabase) {
-      set('Initialising client...');
+  <script>
+    // expects ensureClient() and window.supabase from config.js
+    (async () => {
       try {
-        // If your config.js didn't set window.supabase, we fall back to env-like globals
-        if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
-          window.supabase = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
-            auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:'growindia-auth' }
-          });
+        const sb = await ensureClient();
+
+        async function showStatus(){
+          try {
+            const { data: { session } } = await sb.auth.getSession();
+            const who = document.getElementById('who');
+            if (session && session.user) {
+              who.textContent = `Signed in as ${session.user.email || session.user.id}`;
+            } else {
+              who.textContent = 'You are not signed in.';
+            }
+          } catch (e) {
+            console.error(e);
+            document.getElementById('who').textContent = 'Could not determine session.';
+          }
         }
-      } catch(e) {
-        console.error(e);
-        set('Unable to initialise Supabase client.');
-        throw e;
+
+        // keep the status live if auth changes (e.g., magic link completes)
+        sb.auth.onAuthStateChange((_evt, session) => {
+          const who = document.getElementById('who');
+          who.textContent = (session && session.user)
+            ? `Signed in as ${session.user.email || session.user.id}`
+            : 'You are not signed in.';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+          try { await sb.auth.signOut(); } catch(e) { console.error(e); }
+          // Back to the public home after logout
+          window.location.assign('/index.html');
+        });
+
+        await showStatus();
+      } catch (err) {
+        console.error('post-auth init failed:', err);
+        document.getElementById('who').textContent = 'Could not determine session.';
       }
-    }
-    return window.supabase;
-  }
-
-  async function check(){
-    try{
-      const sb = await ensureClient();
-      const { data: { session } } = await sb.auth.getSession();
-      if (session && session.user) {
-        set(`Signed in as ${session.user.email || session.user.id}`);
-      } else {
-        set('You are not signed in.');
-      }
-    }catch(e){
-      console.error(e);
-      set('Could not determine session.');
-    }
-  }
-
-  $('goAdmin').addEventListener('click', () => { location.href = '/admin.html'; });
-  $('logoutBtn').addEventListener('click', async () => {
-    try{ const sb = await ensureClient(); await sb.auth.signOut(); }catch(_){}
-    location.href = '/';
-  });
-
-  check();
-})();
-</script>
+    })();
+  </script>
 </body>
 </html>
