@@ -1,33 +1,33 @@
+# admin.html (v13.2)
+
+```html
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>GrowIndia — Admin (v13.1)</title>
+  <title>GrowIndia — Admin (v13.2)</title>
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- Supabase v2 -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <!-- Your project client must set window.supabase -->
+  <!-- Your project client must set window.supabase (see config.js) -->
   <script src="config.js?v=13"></script>
 
   <style>
-    /* Light theme defaults */
-    :root{
-      --bg:#f6f8fc; --card:#ffffff; --muted:#eef2f7; --text:#0f172a; --text2:#475569;
-      --brand:#2563eb; --accent:#f59e0b; --danger:#ef4444; --border:#e5e7eb;
-    }
+    /* Light theme */
+    :root{ --bg:#f6f8fc; --card:#fff; --muted:#eef2f7; --text:#0f172a; --text2:#475569; --brand:#2563eb; --danger:#ef4444; --border:#e5e7eb; }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
     a{color:var(--brand);text-decoration:none}
     .wrap{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
     .side{background:#fff;border-right:1px solid var(--border);padding:16px 12px;position:sticky;top:0;height:100vh}
-    .brand{display:flex;gap:10px;align-items:center;font-weight:700;margin-bottom:18px;color:var(--text)}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700;margin-bottom:18px}
     .brand .dot{width:10px;height:10px;border-radius:50%;background:#16a34a}
     .nav a{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;color:var(--text2)}
     .nav a.active,.nav a:hover{background:var(--muted);color:var(--text)}
-    .top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:#ffffff;position:sticky;top:0;z-index:5}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:5}
     .search{display:flex;gap:10px;align-items:center;background:var(--muted);padding:8px 12px;border-radius:10px;min-width:280px}
     .search input{all:unset;color:var(--text);width:260px}
     .user{display:flex;gap:10px;align-items:center}
@@ -39,7 +39,7 @@
     .kpi .big{font-size:26px;font-weight:800}
     .muted{color:var(--text2)}
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .btn{background:var(--brand);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn{background:var(--brand);border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
     .btn.alt{background:var(--muted);color:var(--text)}
     .btn.warn{background:var(--danger)}
     .btn:disabled{opacity:.6;cursor:not-allowed}
@@ -51,21 +51,20 @@
     .draft{background:#fffbeb;color:#92400e;border-color:#fde68a}
     .closed{background:#fef2f2;color:#991b1b;border-color:#fecaca}
     .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .toolbar input, .toolbar select{background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:10px}
+    .toolbar input,.toolbar select{background:#fff;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:10px}
     .pagination{display:flex;gap:8px;align-items:center}
     .empty{padding:24px;text-align:center;color:var(--text2)}
     .toast{position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:12px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.25s}
     .toast.show{opacity:1;transform:translateY(0)}
-    /* Modal */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
     .modal.show{display:flex}
-    .panel{background:#ffffff;border:1px solid var(--border);border-radius:16px;max-width:800px;width:100%}
+    .panel{background:#fff;border:1px solid var(--border);border-radius:16px;max-width:800px;width:100%}
     .panel .head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
     .panel .body{padding:16px}
     .form{display:grid;gap:12px}
     @media(min-width:760px){ .form{grid-template-columns:1fr 1fr} .form .full{grid-column:1/-1} }
     label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px}
-    input[type=text],input[type=number],input[type=email],input[type=url],textarea,select{width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:10px}
+    input[type=text],input[type=number],input[type=email],input[type=url],textarea,select{width:100%;background:#fff;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:10px}
     textarea{min-height:100px;resize:vertical}
     .fatal{background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;padding:12px;border-radius:10px;margin:14px 0}
   </style>
@@ -90,10 +89,8 @@
       </div>
 
       <main class="main">
-        <!-- FATAL banner if config.js didn't load client -->
         <div id="fatal" class="fatal" style="display:none"></div>
 
-        <!-- DASHBOARD -->
         <section id="dashboardSection">
           <section class="grid grid-4">
             <div class="card kpi"><span class="muted">Total Jobs</span><span id="kpiJobs" class="big">0</span></div>
@@ -101,14 +98,12 @@
             <div class="card kpi"><span class="muted">Employers</span><span id="kpiEmployers" class="big">0</span></div>
             <div class="card kpi"><span class="muted">Applications</span><span id="kpiApps" class="big">0</span></div>
           </section>
-
           <section class="grid grid-2" style="margin-top:14px">
             <div class="card"><div class="row" style="justify-content:space-between"><h3>Applications (last 14 days)</h3></div><canvas id="appsLine"></canvas></div>
             <div class="card"><div class="row" style="justify-content:space-between"><h3>Jobs by Status</h3></div><canvas id="jobsPie"></canvas></div>
           </section>
         </section>
 
-        <!-- JOBS CRUD -->
         <section id="jobsSection" style="margin-top:14px;display:none">
           <div class="card">
             <div class="row" style="justify-content:space-between">
@@ -133,7 +128,6 @@
           </div>
         </section>
 
-        <!-- EMPLOYERS CRUD -->
         <section id="employersSection" style="margin-top:14px;display:none">
           <div class="card">
             <div class="row" style="justify-content:space-between">
@@ -157,7 +151,6 @@
           </div>
         </section>
 
-        <!-- APPLICATIONS CRUD -->
         <section id="applicationsSection" style="margin-top:14px;display:none">
           <div class="card">
             <div class="row" style="justify-content:space-between">
@@ -246,74 +239,76 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    // ---- Utilities ----
-    const Err = (msg) => { const f=document.getElementById('fatal'); f.textContent=msg; f.style.display='block'; };
-    const db = window.supabase;
-    if (!db) Err('Supabase client not found. Ensure config.js loads after the supabase-js CDN and contains your URL + anon key.');
+    // ---------- Helpers ----------
+    const Err = (msg)=>{ const f=document.getElementById('fatal'); f.textContent=msg; f.style.display='block'; };
+    const db = window.supabase; if(!db) Err('Supabase client not found. Ensure config.js loads after the supabase-js CDN and contains your URL + anon key.');
+    const show=(el,flag=true)=> el.classList[flag?'add':'remove']('show');
+    const toast=(msg,ok=true)=>{ const t=document.getElementById('toast'); t.textContent=msg; t.style.background=ok?'#111827':'#991b1b'; show(t,true); setTimeout(()=>show(t,false),2200); };
+    const fmtINR=(n)=> n? new Intl.NumberFormat('en-IN').format(n):'-';
+    const escapeHTML=(s)=> (s??'').toString().replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
+    const v=(id)=> document.getElementById(id).value.trim();
+    const n=(id)=>{ const x=document.getElementById(id).value; return x===''? null : Number(x); };
 
-    const show = (el, flag=true)=> el.classList[flag?'add':'remove']('show');
-    const toast = (msg, ok=true)=>{ const t=document.getElementById('toast'); t.textContent=msg; t.style.background = ok?'#111827':'#991b1b'; show(t,true); setTimeout(()=>show(t,false),2200); };
-    const fmtINR = (n)=> n? new Intl.NumberFormat('en-IN').format(n):'-';
-    function escapeHTML(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-    function v(id){ return document.getElementById(id).value.trim(); }
-    function n(id){ const x=document.getElementById(id).value; return x===''? null : Number(x); }
-
-    // ---- Auth + Logout ----
+    // ---------- Auth & Logout ----------
     async function guard(){
       const { data:{ session }, error } = await db.auth.getSession();
-      if (error){ Err('auth.getSession failed: '+error.message); return; }
-      if (!session){ location.href='post-auth.html'; return; }
+      if(error){ Err('auth.getSession failed: '+error.message); return; }
+      if(!session){ location.href='index.html'; return; } // send unauth users to public home
       document.getElementById('whoami').textContent = session.user.email;
     }
     document.getElementById('logoutBtn').addEventListener('click', async (e)=>{
       e.preventDefault();
-      try { await db.auth.signOut(); } catch(_){}
-      finally { location.href='post-auth.html'; }
+      try{ await db.auth.signOut({ scope:'global' }); }catch(_){ }
+      try{ await db.auth.signOut({ scope:'local' }); }catch(_){ }
+      location.href='index.html';
     });
 
-    // ---- Router (accept singular anchors too) ----
-    const sections = { dashboard:'dashboardSection', jobs:'jobsSection', job:'jobsSection', employers:'employersSection', employer:'employersSection', applications:'applicationsSection', application:'applicationsSection' };
-    function route(){ const key=(location.hash||'#dashboard').replace('#',''); const id=sections[key]||'dashboardSection'; Object.values(sections).forEach(s=>{ const el=document.getElementById(s); if (el) el.style.display = (s===id)?'block':'none'; }); document.querySelectorAll('#nav a').forEach(a=> a.classList.toggle('active', a.dataset.target===id)); }
+    // ---------- Router ----------
+    const sections={ dashboard:'dashboardSection', jobs:'jobsSection', job:'jobsSection', employers:'employersSection', employer:'employersSection', applications:'applicationsSection', application:'applicationsSection' };
+    function route(){ const key=(location.hash||'#dashboard').replace('#',''); const id=sections[key]||'dashboardSection'; Object.values(sections).forEach(s=>{ const el=document.getElementById(s); if(el) el.style.display=(s===id)?'block':'none'; }); document.querySelectorAll('#nav a').forEach(a=> a.classList.toggle('active', a.dataset.target===id)); }
     window.addEventListener('hashchange', route);
 
-    // ---- KPIs + Charts ----
+    // ---------- KPIs & Charts ----------
     let appsLineChart, jobsPieChart;
     async function loadKPIsAndCharts(){
-      const [{ data: jobs, error: e1 }, { data: emps, error: e2 }, { data: apps, error: e3 }] = await Promise.all([
+      const [{ data:jobs, error:e1 }, { data:emps, error:e2 }, { data:apps, error:e3 }] = await Promise.all([
         db.from('jobs').select('id,status,created_at'),
         db.from('employers').select('id'),
         db.from('applications').select('id,created_at')
       ]);
-      if (e1||e2||e3){ console.error(e1||e2||e3); return; }
+      if(e1||e2||e3){ console.error(e1||e2||e3); return; }
       document.getElementById('kpiJobs').textContent = jobs.length;
       document.getElementById('kpiJobsActive').textContent = jobs.filter(j=>j.status==='active').length;
       document.getElementById('kpiEmployers').textContent = emps.length;
       document.getElementById('kpiApps').textContent = apps.length;
-
       const days=[...Array(14)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()-(13-i)); return d.toISOString().slice(0,10); });
-      const byDay=days.map(d=> (apps||[]).filter(a=>(a.created_at||'').slice(0,10)===d).length );
+      const byDay=days.map(d=> (apps||[]).filter(a=> (a.created_at||'').slice(0,10)===d).length );
       const ctx1=document.getElementById('appsLine'); appsLineChart?.destroy();
-      appsLineChart=new Chart(ctx1,{type:'line',data:{labels:days,datasets:[{label:'Applications',data:byDay,tension:.35,fill:false}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b'}},y:{ticks:{color:'#64748b'}}}}});
-      const statusCount={active:0,draft:0,closed:0}; (jobs||[]).forEach(j=>statusCount[j.status]=(statusCount[j.status]||0)+1);
+      appsLineChart=new Chart(ctx1,{ type:'line', data:{ labels:days, datasets:[{ label:'Applications', data:byDay, tension:.35, fill:false }] }, options:{ plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{ color:'#64748b' } }, y:{ ticks:{ color:'#64748b' } } } });
+      const statusCount={active:0,draft:0,closed:0}; (jobs||[]).forEach(j=> statusCount[j.status]=(statusCount[j.status]||0)+1 );
       const ctx2=document.getElementById('jobsPie'); jobsPieChart?.destroy();
-      jobsPieChart=new Chart(ctx2,{type:'doughnut',data:{labels:['Active','Draft','Closed'],datasets:[{data:[statusCount.active||0,statusCount.draft||0,statusCount.closed||0]}]},options:{plugins:{legend:{labels:{color:'#64748b'}}}}});
+      jobsPieChart=new Chart(ctx2,{ type:'doughnut', data:{ labels:['Active','Draft','Closed'], datasets:[{ data:[statusCount.active||0,statusCount.draft||0,statusCount.closed||0] }] }, options:{ plugins:{ legend:{ labels:{ color:'#64748b' } } } });
     }
 
-    // ---- JOBS CRUD ----
+    // ---------- JOBS CRUD ----------
     const PAGE=10; let page=1,total=0;
     function jobFilters(){ return { q:v('jobSearch'), status:document.getElementById('jobStatus').value, type:document.getElementById('jobType').value }; }
-    async function countJobs(f){ let q=db.from('jobs').select('id',{count:'exact',head:true}); if(f.q) q=q.or(`title.ilike.%${f.q}%,company.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.type) q=q.eq('type',f.type); const {count,error}=await q; if(error){console.error(error);return 0;} return count||0; }
-    async function loadJobs(p=1){ const f=jobFilters(); total=await countJobs(f); const pages=Math.max(1,Math.ceil(total/PAGE)); page=Math.min(Math.max(1,p),pages); const from=(page-1)*PAGE,to=from+PAGE-1; let q=db.from('jobs').select('*').order('created_at',{ascending:false}).range(from,to); if(f.q) q=q.or(`title.ilike.%${f.q}%,company.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.type) q=q.eq('type',f.type); const {data,error}=await q; const tbody=document.getElementById('jobsTbody'); if(error){ tbody.innerHTML=`<tr><td colspan="7" class="empty">Error: ${escapeHTML(error.message)}</td></tr>`; return; } if(!data?.length){ tbody.innerHTML=`<tr><td colspan="7" class="empty">No jobs found.</td></tr>`; } else { tbody.innerHTML=data.map(j=>{ const sal=(j.salary_min||j.salary_max)?`₹ ${fmtINR(j.salary_min)||''}${j.salary_max?' - ₹ '+fmtINR(j.salary_max):''}`:'-'; const cls=j.status==='active'?'ok':(j.status==='draft'?'draft':'closed'); return `<tr>
-          <td>${escapeHTML(j.title||'-')}</td><td>${escapeHTML(j.company||'-')}</td><td>${escapeHTML(j.location||'-')}</td><td>${escapeHTML(j.type||'-')}</td><td>${sal}</td>
-          <td><span class="pill ${cls}">${j.status||'-'}</span></td>
-          <td>
-            <button class="btn alt" data-edit="${j.id}">Edit</button>
-            <button class="btn warn" data-del="${j.id}">Delete</button>
-            <button class="btn alt" data-job-status="active" data-id="${j.id}">Activate</button>
-            <button class="btn alt" data-job-status="draft" data-id="${j.id}">Draft</button>
-            <button class="btn alt" data-job-status="closed" data-id="${j.id}">Close</button>
-          </td>
-        </tr>`; }).join(''); }
+    async function countJobs(f){ let q=db.from('jobs').select('id',{count:'exact',head:true}); if(f.q) q=q.or(`title.ilike.%${f.q}%,company.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.type) q=q.eq('type',f.type); const { count, error }=await q; if(error){ console.error(error); return 0; } return count||0; }
+    async function loadJobs(p=1){ const f=jobFilters(); total=await countJobs(f); const pages=Math.max(1,Math.ceil(total/PAGE)); page=Math.min(Math.max(1,p),pages); const from=(page-1)*PAGE,to=from+PAGE-1; let q=db.from('jobs').select('*').order('created_at',{ascending:false}).range(from,to); if(f.q) q=q.or(`title.ilike.%${f.q}%,company.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.type) q=q.eq('type',f.type); const { data, error } = await q; const tbody=document.getElementById('jobsTbody'); if(error){ tbody.innerHTML=`<tr><td colspan="7" class="empty">Error: ${escapeHTML(error.message)}</td></tr>`; return; } if(!data?.length){ tbody.innerHTML=`<tr><td colspan="7" class="empty">No jobs found.</td></tr>`; } else { tbody.innerHTML=data.map(j=>{ const sal=(j.salary_min||j.salary_max)?`₹ ${fmtINR(j.salary_min)||''}${j.salary_max?' - ₹ '+fmtINR(j.salary_max):''}`:'-'; const cls=j.status==='active'?'ok':(j.status==='draft'?'draft':'closed'); return `<tr>
+            <td>${escapeHTML(j.title||'-')}</td>
+            <td>${escapeHTML(j.company||'-')}</td>
+            <td>${escapeHTML(j.location||'-')}</td>
+            <td>${escapeHTML(j.type||'-')}</td>
+            <td>${sal}</td>
+            <td><span class="pill ${cls}">${j.status||'-'}</span></td>
+            <td>
+              <button class="btn alt" data-edit="${j.id}">Edit</button>
+              <button class="btn warn" data-del="${j.id}">Delete</button>
+              <button class="btn alt" data-job-status="active" data-id="${j.id}">Activate</button>
+              <button class="btn alt" data-job-status="draft" data-id="${j.id}">Draft</button>
+              <button class="btn alt" data-job-status="closed" data-id="${j.id}">Close</button>
+            </td>
+          </tr>`; }).join(''); }
       document.getElementById('jobsCount').textContent=`${total} result${total===1?'':'s'}`;
       document.getElementById('pageInfo').textContent=`${page} / ${Math.max(1,Math.ceil(total/PAGE))}`;
       const tb=document.getElementById('jobsTbody');
@@ -328,16 +323,16 @@
     document.getElementById('addJobBtn').onclick=()=>openJobModal(null);
     document.getElementById('closeModal').onclick=()=>show(jobModal,false);
     document.getElementById('cancelJob').onclick=()=>show(jobModal,false);
-    async function openJobModal(id){ jobForm.reset(); document.getElementById('job_id').value=id||''; modalTitle.textContent=id?'Edit Job':'Add Job'; if(id){ const {data,error}=await db.from('jobs').select('*').eq('id',id).single(); if(error){toast('Failed to load job',false);return;} for(const k of ['title','company','location','type','salary_min','salary_max','status','description']){ const el=document.getElementById(k); if(el) el.value=data[k]??''; } } show(jobModal,true); }
-    jobForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn=document.getElementById('saveJob'); btn.disabled=true; const payload={ title:v('title'), company:v('company'), location:v('location'), type:v('type'), salary_min:n('salary_min'), salary_max:n('salary_max'), status:v('status'), description:v('description') }; const id=v('job_id'); let res; if(id){ res=await db.from('jobs').update(payload).eq('id',id).select('id').single(); } else { res=await db.from('jobs').insert(payload).select('id').single(); } btn.disabled=false; if(res.error){ toast('Save failed: '+res.error.message,false); return;} show(jobModal,false); toast(id?'Job updated':'Job added'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); });
-    async function deleteJob(id){ if(!confirm('Delete this job?')) return; const { error }=await db.from('jobs').delete().eq('id',id); if(error){ toast('Delete failed: '+error.message,false); return; } toast('Job deleted'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); }
-    document.getElementById('jobsTbody').addEventListener('click', async (e)=>{ const b=e.target.closest('button[data-job-status]'); if(!b) return; const { id }=b.dataset; const status=b.dataset.jobStatus; const { error }=await db.from('jobs').update({status}).eq('id',id); if(error){ toast('Failed to update job: '+error.message,false); return;} toast(`Job → ${status}`); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); });
+    async function openJobModal(id){ jobForm.reset(); document.getElementById('job_id').value=id||''; modalTitle.textContent=id?'Edit Job':'Add Job'; if(id){ const { data, error } = await db.from('jobs').select('*').eq('id',id).single(); if(error){ toast('Failed to load job',false); return; } for(const k of ['title','company','location','type','salary_min','salary_max','status','description']){ const el=document.getElementById(k); if(el) el.value=data[k]??''; } } show(jobModal,true); }
+    jobForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn=document.getElementById('saveJob'); btn.disabled=true; const payload={ title:v('title'), company:v('company'), location:v('location'), type:v('type'), salary_min:n('salary_min'), salary_max:n('salary_max'), status:v('status'), description:v('description') }; const id=v('job_id'); let res; if(id){ res=await db.from('jobs').update(payload).eq('id',id).select('id').single(); } else { res=await db.from('jobs').insert(payload).select('id').single(); } btn.disabled=false; if(res.error){ toast('Save failed: '+res.error.message,false); return; } show(jobModal,false); toast(id?'Job updated':'Job added'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); });
+    async function deleteJob(id){ if(!confirm('Delete this job?')) return; const { error } = await db.from('jobs').delete().eq('id',id); if(error){ toast('Delete failed: '+error.message,false); return; } toast('Job deleted'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); }
+    document.getElementById('jobsTbody').addEventListener('click', async (e)=>{ const b=e.target.closest('button[data-job-status]'); if(!b) return; const { id }=b.dataset; const status=b.dataset.jobStatus; const { error }=await db.from('jobs').update({ status }).eq('id',id); if(error){ toast('Failed to update job: '+error.message,false); return; } toast(`Job → ${status}`); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); });
 
-    // ---- EMPLOYERS CRUD ----
-    const EPAGE=10; let ep=1, etotal=0;
+    // ---------- EMPLOYERS CRUD ----------
+    const EPAGE=10; let ep=1,etotal=0;
     function empFilters(){ return { q:v('empSearch'), verified:document.getElementById('empVerified').value }; }
-    async function ecount(f){ let q=db.from('employers').select('id',{count:'exact',head:true}); if(f.q) q=q.or(`name.ilike.%${f.q}%,email.ilike.%${f.q}%`); if(f.verified) q=q.eq('verified', f.verified==='true'); const {count,error}=await q; if(error){console.error(error);return 0;} return count||0; }
-    async function loadEmployers(p=1){ const f=empFilters(); etotal=await ecount(f); const pages=Math.max(1,Math.ceil(etotal/EPAGE)); ep=Math.min(Math.max(1,p),pages); const from=(ep-1)*EPAGE,to=from+EPAGE-1; let q=db.from('employers').select('*').order('created_at',{ascending:false}).range(from,to); if(f.q) q=q.or(`name.ilike.%${f.q}%,email.ilike.%${f.q}%`); if(f.verified) q=q.eq('verified', f.verified==='true'); const {data,error}=await q; const tbody=document.getElementById('empTbody'); if(error){ tbody.innerHTML=`<tr><td colspan="6" class="empty">Error: ${escapeHTML(error.message)}</td></tr>`; return; } if(!data?.length){ tbody.innerHTML=`<tr><td colspan="6" class="empty">No employers found.</td></tr>`; } else { tbody.innerHTML=data.map(e=>`<tr>
+    async function ecount(f){ let q=db.from('employers').select('id',{count:'exact',head:true}); if(f.q) q=q.or(`name.ilike.%${f.q}%,email.ilike.%${f.q}%`); if(f.verified) q=q.eq('verified', f.verified==='true'); const { count, error }=await q; if(error){ console.error(error); return 0; } return count||0; }
+    async function loadEmployers(p=1){ const f=empFilters(); etotal=await ecount(f); const pages=Math.max(1,Math.ceil(etotal/EPAGE)); ep=Math.min(Math.max(1,p),pages); const from=(ep-1)*EPAGE,to=from+EPAGE-1; let q=db.from('employers').select('*').order('created_at',{ascending:false}).range(from,to); if(f.q) q=q.or(`name.ilike.%${f.q}%,email.ilike.%${f.q}%`); if(f.verified) q=q.eq('verified', f.verified==='true'); const { data, error }=await q; const tbody=document.getElementById('empTbody'); if(error){ tbody.innerHTML=`<tr><td colspan="6" class="empty">Error: ${escapeHTML(error.message)}</td></tr>`; return; } if(!data?.length){ tbody.innerHTML=`<tr><td colspan="6" class="empty">No employers found.</td></tr>`; } else { tbody.innerHTML=data.map(e=>`<tr>
           <td>${escapeHTML(e.name||'-')}</td>
           <td>${escapeHTML(e.email||'-')}</td>
           <td>${e.website?`<a href="${escapeHTML(e.website)}" target="_blank">${escapeHTML((e.website||'').replace(/^https?:\/\//,''))}</a>`:'—'}</td>
@@ -345,7 +340,8 @@
           <td>${e.verified?'<span class="pill ok">Yes</span>':'<span class="pill draft">No</span>'}</td>
           <td><button class="btn alt" data-emp-edit="${e.id}">Edit</button> <button class="btn warn" data-emp-del="${e.id}">Delete</button></td>
         </tr>`).join(''); }
-      document.getElementById('empCount').textContent=`${etotal} employer${etotal===1?'':'s'}`; document.getElementById('empPageInfo').textContent=`${ep} / ${pages}`;
+      document.getElementById('empCount').textContent=`${etotal} employer${etotal===1?'':'s'}`;
+      document.getElementById('empPageInfo').textContent=`${ep} / ${pages}`;
       tbody.querySelectorAll('button[data-emp-edit]').forEach(b=> b.onclick=()=>openEmpModal(b.dataset.empEdit));
       tbody.querySelectorAll('button[data-emp-del]').forEach(b=> b.onclick=()=>deleteEmployer(b.dataset.empDel));
     }
@@ -357,19 +353,19 @@
     document.getElementById('addEmpBtn').onclick=()=>openEmpModal(null);
     document.getElementById('closeEmpModal').onclick=()=>show(empModal,false);
     document.getElementById('cancelEmp').onclick=()=>show(empModal,false);
-    async function openEmpModal(id){ empForm.reset(); document.getElementById('emp_id').value=id||''; document.getElementById('empModalTitle').textContent=id?'Edit Employer':'Add Employer'; if(id){ const {data,error}=await db.from('employers').select('*').eq('id',id).single(); if(error){ toast('Failed to load employer: '+error.message,false); return; } document.getElementById('emp_name').value=data.name||''; document.getElementById('emp_email').value=data.email||''; document.getElementById('emp_website').value=data.website||''; document.getElementById('emp_phone').value=data.phone||''; document.getElementById('emp_verified').checked=!!data.verified; document.getElementById('emp_notes').value=data.notes||''; }
+    async function openEmpModal(id){ empForm.reset(); document.getElementById('emp_id').value=id||''; document.getElementById('empModalTitle').textContent=id?'Edit Employer':'Add Employer'; if(id){ const { data, error }=await db.from('employers').select('*').eq('id',id).single(); if(error){ toast('Failed to load employer: '+error.message,false); return; } document.getElementById('emp_name').value=data.name||''; document.getElementById('emp_email').value=data.email||''; document.getElementById('emp_website').value=data.website||''; document.getElementById('emp_phone').value=data.phone||''; document.getElementById('emp_verified').checked=!!data.verified; document.getElementById('emp_notes').value=data.notes||''; }
       show(empModal,true);
     }
     empForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn=document.getElementById('saveEmp'); btn.disabled=true; const payload={ name:v('emp_name'), email:v('emp_email'), website:v('emp_website')||null, phone:v('emp_phone')||null, verified:document.getElementById('emp_verified').checked, notes:v('emp_notes')||null }; const id=v('emp_id'); let res; if(id){ res=await db.from('employers').update(payload).eq('id',id).select('id').single(); } else { res=await db.from('employers').insert(payload).select('id').single(); } btn.disabled=false; if(res.error){ toast('Save failed: '+res.error.message,false); return; } show(empModal,false); toast(id?'Employer updated':'Employer added'); await Promise.all([loadEmployers(ep), loadKPIsAndCharts()]); });
     async function deleteEmployer(id){ if(!confirm('Delete this employer?')) return; const { error }=await db.from('employers').delete().eq('id',id); if(error){ toast('Delete failed: '+error.message,false); return; } toast('Employer deleted'); await Promise.all([loadEmployers(ep), loadKPIsAndCharts()]); }
 
-    // ---- APPLICATIONS CRUD ----
-    const APAGE=10; let ap=1, atotal=0; let jobsCache=[];
-    async function refreshJobsCache(){ const {data,error}=await db.from('jobs').select('id,title,company').order('created_at',{ascending:false}); if(!error) jobsCache=data||[]; document.getElementById('appJob').innerHTML = `<option value="">All jobs</option>` + jobsCache.map(j=>`<option value="${j.id}">${escapeHTML(j.title)} — ${escapeHTML(j.company||'')}</option>`).join(''); document.getElementById('app_job_id').innerHTML = jobsCache.map(j=>`<option value="${j.id}">${escapeHTML(j.title)} — ${escapeHTML(j.company||'')}</option>`).join(''); }
+    // ---------- APPLICATIONS CRUD ----------
+    const APAGE=10; let ap=1,atotal=0; let jobsCache=[];
+    async function refreshJobsCache(){ const { data, error }=await db.from('jobs').select('id,title,company').order('created_at',{ascending:false}); if(!error) jobsCache=data||[]; document.getElementById('appJob').innerHTML = `<option value="">All jobs</option>` + (jobsCache.map(j=>`<option value="${j.id}">${escapeHTML(j.title)} — ${escapeHTML(j.company||'')}</option>`).join('')); document.getElementById('app_job_id').innerHTML = jobsCache.map(j=>`<option value="${j.id}">${escapeHTML(j.title)} — ${escapeHTML(j.company||'')}</option>`).join(''); }
     function appFilters(){ return { q:v('appSearch'), status:document.getElementById('appStatus').value, job:document.getElementById('appJob').value }; }
-    async function acount(f){ let q=db.from('applications').select('id',{count:'exact',head:true}); if(f.q) q=q.or(`candidate_name.ilike.%${f.q}%,candidate_email.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.job) q=q.eq('job_id',f.job); const {count,error}=await q; if(error){console.error(error);return 0;} return count||0; }
+    async function acount(f){ let q=db.from('applications').select('id',{count:'exact',head:true}); if(f.q) q=q.or(`candidate_name.ilike.%${f.q}%,candidate_email.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.job) q=q.eq('job_id',f.job); const { count, error }=await q; if(error){ console.error(error); return 0; } return count||0; }
     function statusPill(s){ return s==='hired'?'ok':(s==='rejected'?'closed':'draft'); }
-    async function loadApplications(p=1){ const f=appFilters(); atotal=await acount(f); const pages=Math.max(1,Math.ceil(atotal/APAGE)); ap=Math.min(Math.max(1,p),pages); const from=(ap-1)*APAGE,to=from+APAGE-1; let q=db.from('applications').select('*').order('created_at',{ascending:false}).range(from,to); if(f.q) q=q.or(`candidate_name.ilike.%${f.q}%,candidate_email.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.job) q=q.eq('job_id',f.job); const {data,error}=await q; const tbody=document.getElementById('appsTbody'); if(error){ tbody.innerHTML=`<tr><td colspan="6" class="empty">Error: ${escapeHTML(error.message)}</td></tr>`; return; } if(!data?.length){ tbody.innerHTML=`<tr><td colspan="6" class="empty">No applications found.</td></tr>`; } else { const jobMap=Object.fromEntries((jobsCache||[]).map(j=>[j.id,`${j.title} — ${j.company||''}`])); tbody.innerHTML=data.map(a=>`<tr>
+    async function loadApplications(p=1){ const f=appFilters(); atotal=await acount(f); const pages=Math.max(1,Math.ceil(atotal/APAGE)); ap=Math.min(Math.max(1,p),pages); const from=(ap-1)*APAGE,to=from+APAGE-1; let q=db.from('applications').select('*').order('created_at',{ascending:false}).range(from,to); if(f.q) q=q.or(`candidate_name.ilike.%${f.q}%,candidate_email.ilike.%${f.q}%`); if(f.status) q=q.eq('status',f.status); if(f.job) q=q.eq('job_id',f.job); const { data, error }=await q; const tbody=document.getElementById('appsTbody'); if(error){ tbody.innerHTML=`<tr><td colspan="6" class="empty">Error: ${escapeHTML(error.message)}</td></tr>`; return; } if(!data?.length){ tbody.innerHTML=`<tr><td colspan="6" class="empty">No applications found.</td></tr>`; } else { const jobMap=Object.fromEntries((jobsCache||[]).map(j=>[j.id,`${j.title} — ${j.company||''}`])); tbody.innerHTML=data.map(a=>`<tr>
           <td>${escapeHTML(a.candidate_name||'-')}</td>
           <td>${escapeHTML(a.candidate_email||'-')}</td>
           <td>${escapeHTML(jobMap[a.job_id]||a.job_id)}</td>
@@ -384,7 +380,8 @@
             <button class="btn alt" data-app-status="hired" data-id="${a.id}">Hire</button>
           </td>
         </tr>`).join(''); }
-      document.getElementById('appsCount').textContent=`${atotal} application${atotal===1?'':'s'}`; document.getElementById('appsPageInfo').textContent=`${ap} / ${pages}`;
+      document.getElementById('appsCount').textContent=`${atotal} application${atotal===1?'':'s'}`;
+      document.getElementById('appsPageInfo').textContent=`${ap} / ${pages}`;
       tbody.querySelectorAll('button[data-app-edit]').forEach(b=> b.onclick=()=>openAppModal(b.dataset.appEdit));
       tbody.querySelectorAll('button[data-app-del]').forEach(b=> b.onclick=()=>deleteApplication(b.dataset.appDel));
     }
@@ -392,24 +389,71 @@
     document.getElementById('appsNext').onclick=()=>loadApplications(ap+1);
     ['appSearch','appStatus','appJob'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input',()=>loadApplications(1)); el.addEventListener('change',()=>loadApplications(1)); });
 
-    const appModal=document.getElementById('appModal'); const appForm=document.getElementById('appForm');
-    document.getElementById('addAppBtn').onclick=()=>openAppModal(null);
-    document.getElementById('closeAppModal').onclick=()=>show(appModal,false);
-    document.getElementById('cancelApp').onclick=()=>show(appModal,false);
-    async function openAppModal(id){ appForm.reset(); document.getElementById('app_id').value=id||''; document.getElementById('appModalTitle').textContent=id?'Edit Application':'Add Application'; if(id){ const {data,error}=await db.from('applications').select('*').eq('id',id).single(); if(error){ toast('Failed to load application: '+error.message,false); return; } document.getElementById('app_job_id').value=data.job_id; document.getElementById('app_name').value=data.candidate_name||''; document.getElementById('app_email').value=data.candidate_email||''; document.getElementById('app_resume').value=data.resume_url||''; document.getElementById('app_status').value=data.status||'submitted'; }
-      show(appModal,true);
-    }
-    appForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn=document.getElementById('saveApp'); btn.disabled=true; const payload={ job_id:document.getElementById('app_job_id').value, candidate_name:v('app_name'), candidate_email:v('app_email'), resume_url:v('app_resume')||null, status:document.getElementById('app_status').value }; const id=v('app_id'); let res; if(id){ res=await db.from('applications').update(payload).eq('id',id).select('id').single(); } else { res=await db.from('applications').insert(payload).select('id').single(); } btn.disabled=false; if(res.error){ toast('Save failed: '+res.error.message,false); return;} show(appModal,false); toast(id?'Application updated':'Application added'); await Promise.all([loadApplications(ap), loadKPIsAndCharts()]); });
-    async function deleteApplication(id){ if(!confirm('Delete this application?')) return; const { error }=await db.from('applications').delete().eq('id',id); if(error){ toast('Delete failed: '+error.message,false); return; } toast('Application deleted'); await Promise.all([loadApplications(ap), loadKPIsAndCharts()]); }
-
-    // ---- Init ----
+    // ---------- Init ----------
     (async function init(){
       if(!db) return; // fatal already shown
       await guard();
       await refreshJobsCache();
-      await Promise.all([loadKPIsAndCharts(), loadJobs(1), loadEmployers(1), loadApplications(1)]);
+      await Promise.all([loadKPIsAndCharts(),loadJobs(1),loadEmployers(1),loadApplications(1)]);
       route();
     })();
   </script>
 </body>
 </html>
+```
+
+---
+
+# post-auth.html (v8 — light, redirect if no session)
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GrowIndia — Account</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=13"></script>
+  <style>
+    :root{ --bg:#f6f8fc; --card:#fff; --text:#0f172a; --text2:#475569; --brand:#2563eb; --border:#e5e7eb; }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Inter}
+    .wrap{max-width:960px;margin:40px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    h1{margin:0 0 12px} .muted{color:var(--text2)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{background:var(--brand);border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn.alt{background:#e5e7eb;color:#111827}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Account</h1>
+      <p class="muted" id="who">Checking session…</p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="goAdmin">Go to Admin</button>
+        <button class="btn alt" id="logout">Logout</button>
+        <a class="btn alt" href="index.html">Back to site</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const db = window.supabase;
+    (async () => {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { location.replace('index.html'); return; }
+      document.getElementById('who').textContent = `Signed in as ${session.user.email}`;
+    })();
+
+    document.getElementById('goAdmin').onclick = () => location.href='admin.html';
+    document.getElementById('logout').onclick = async () => {
+      try { await db.auth.signOut({ scope:'global' }); } catch(_){}
+      try { await db.auth.signOut({ scope:'local'  }); } catch(_){}
+      location.replace('index.html');
+    };
+  </script>
+</body>
+</html>
+```
