@@ -1,131 +1,53 @@
+```html
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Admin — GrowIndia</title>
-
-  <!-- Supabase v2 -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-
-  <style>
-    :root{ --bg:#0f172a; --card:#111827; --muted:#1f2937; --text:#e5e7eb; --text2:#9ca3af; --brand:#3b82f6; --danger:#ef4444; }
-    *{box-sizing:border-box} body{margin:0;background:#0b1222;color:var(--text);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial}
-    a{color:var(--brand);text-decoration:none}
-    header{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #111320;background:#0b1222;position:sticky;top:0;z-index:10}
-    .container{max-width:1100px;margin:0 auto;padding:18px}
-    h1{margin:0 0 6px;font-size:28px}
-    .muted{color:var(--text2)}
-    .grid{display:grid;gap:12px}
-    @media(min-width:900px){ .grid-4{grid-template-columns:repeat(4,1fr)} .grid-2{grid-template-columns:1fr 1fr} }
-    .card{background:var(--card);border:1px solid #111320;border-radius:14px;padding:14px}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .kpi .big{font-size:26px;font-weight:800}
-    input,button,select{background:#0b1222;border:1px solid #111320;color:var(--text);padding:10px;border-radius:10px}
-    button.primary{background:var(--brand);border:none;color:#fff;font-weight:700}
-    button.warn{background:var(--danger);border:none}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #111320;text-align:left}
-    th{color:var(--text2);font-weight:600}
-    .pill{padding:5px 10px;border-radius:999px;font-size:12px;background:#0b1222;border:1px solid #111320;color:var(--text2)}
-    .right{margin-left:auto}
-    .toast{position:fixed;right:16px;bottom:16px;background:#0b1222;border:1px solid #111320;color:var(--text);padding:12px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.25s}
-    .toast.show{opacity:1;transform:translateY(0)}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>GrowIndia — Account</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js?v=13"></script>
+<style>
+:root{ --bg:#f6f8fc; --card:#fff; --text:#0f172a; --text2:#475569; --brand:#2563eb; --border:#e5e7eb; }
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Inter}
+.wrap{max-width:960px;margin:40px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+h1{margin:0 0 12px} .muted{color:var(--text2)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{background:var(--brand);border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+.btn.alt{background:#e5e7eb;color:#111827}
+</style>
 </head>
 <body>
-  <header>
-    <div class="row" style="gap:14px">
-      <a href="index.html">← Back to site</a>
-      <span class="muted">Signed in as <span id="whoami">—</span></span>
-    </div>
-    <button id="logoutBtn">Logout</button>
-  </header>
+<div class="wrap">
+<div class="card">
+<h1>Account</h1>
+<p class="muted" id="who">Checking session…</p>
+<div class="row" style="margin-top:8px">
+<button class="btn" id="goAdmin">Go to Admin</button>
+<button class="btn alt" id="logout">Logout</button>
+<a class="btn alt" href="index.html">Back to site</a>
+</div>
+</div>
+</div>
 
-  <main class="container">
-    <h1>Admin</h1>
-    <div class="muted" style="margin-bottom:14px">Full control: Companies, Jobs, Applications, Accounts</div>
 
-    <!-- KPIs (simple) -->
-    <section class="grid grid-4" id="kpiGrid">
-      <div class="card kpi"><span class="muted">Total Jobs</span><div id="kpiJobs" class="big">0</div></div>
-      <div class="card kpi"><span class="muted">Active Jobs</span><div id="kpiJobsActive" class="big">0</div></div>
-      <div class="card kpi"><span class="muted">Total Applications</span><div id="kpiApps" class="big">0</div></div>
-      <div class="card kpi"><span class="muted">Total Companies</span><div id="kpiCompanies" class="big">0</div></div>
-    </section>
+<script>
+const db = window.supabase;
+(async () => {
+const { data: { session } } = await db.auth.getSession();
+if (!session) { location.replace('index.html'); return; }
+document.getElementById('who').textContent = `Signed in as ${session.user.email}`;
+})();
 
-    <!-- COMPANIES -->
-    <section style="margin-top:16px">
-      <div class="card">
-        <div class="row" style="justify-content:space-between">
-          <h3 style="margin:0">Companies</h3>
-          <div class="row">
-            <input id="c_q" placeholder="Search name/website…"/>
-            <button id="c_search">Search</button>
-          </div>
-        </div>
 
-        <div class="row" style="margin-top:10px;gap:10px">
-          <input id="c_name" placeholder="Name"/>
-          <input id="c_website" placeholder="Website (https://…)"/>
-          <input id="c_owner_email" placeholder="Owner email (optional)"/>
-          <button class="primary" id="c_create">Create company</button>
-        </div>
-
-        <div style="overflow:auto;margin-top:12px">
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Name</th><th>Website</th><th>Owner</th><th>Created</th><th style="width:160px">Actions</th></tr>
-            </thead>
-            <tbody id="c_tbody"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <div id="toast" class="toast"></div>
-
-  <script>
-    const db = window.supabase;
-
-    // --- helpers
-    const showToast = (msg, ok=true)=>{
-      const t=document.getElementById('toast');
-      t.textContent = msg;
-      t.style.borderColor = ok ? 'var(--brand)' : 'var(--danger)';
-      t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000);
-    };
-    const escapeHTML = s => (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
-
-    // --- auth guard
-    async function guard(){
-      const { data: { session } } = await db.auth.getSession();
-      if (!session) { location.href = 'index.html'; return null; }
-      document.getElementById('whoami').textContent = session.user.email;
-      return session.user;
-    }
-    document.getElementById('logoutBtn').onclick = async ()=>{
-      await db.auth.signOut(); location.href = 'index.html';
-    };
-
-    // --- KPIs (lightweight)
-    async function loadKPIs(){
-      const [{ data: jobs }, { data: apps }, { data: comps }] = await Promise.all([
-        db.from('jobs').select('id,status'),
-        db.from('applications').select('id'),
-        db.from('companies').select('id')
-      ]);
-      document.getElementById('kpiJobs').textContent = jobs?.length ?? 0;
-      document.getElementById('kpiJobsActive').textContent = (jobs||[]).filter(j=>j.status==='active').length;
-      document.getElementById('kpiApps').textContent = apps?.length ?? 0;
-      document.getElementById('kpiCompanies').textContent = comps?.length ?? 0;
-    }
-
-    // --- Companies list
-    let c_page = 1, C_PAGE = 20, c_total = 0, c_lastQ = '';
-    function c_filters(){ return { q: document.getElementById('c_q').value.trim() }; }
-
-    async function c_count(f){
-      let q = db.from('companies').select('id',{coun
+document.getElementById('goAdmin').onclick = () => location.href='admin.html';
+document.getElementById('logout').onclick = async () => {
+try { await db.auth.signOut({ scope:'global' }); } catch(_){}
+try { await db.auth.signOut({ scope:'local' }); } catch(_){}
+location.replace('index.html');
+};
+</script>
+</body>
+</html>
+```
