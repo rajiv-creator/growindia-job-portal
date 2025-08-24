@@ -1,619 +1,131 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrowIndia — Admin</title>
-  <link rel="icon" href="favicon.ico">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Admin — GrowIndia</title>
+
+  <!-- Supabase v2 -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+
   <style>
-    :root{--bg:#f6f7fb;--fg:#111;--muted:#666;--card:#fff;--b:#e5e7eb;--pill:#fafafa;--blue:#2563eb;--green:#16a34a;--orange:#f59e0b;--red:#dc2626}
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:0;padding:24px;background:var(--bg);color:var(--fg)}
-    h1{margin:0 0 8px}
-    .muted{color:var(--muted)}
-    .toolbar{display:flex;justify-content:space-between;align-items:center;margin:0 0 16px}
-    .link{color:var(--blue);text-decoration:none}
-    .link:hover{text-decoration:underline}
-
-    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
-    .kpi{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px 14px}
-    .kpi .label{font-size:12px;color:var(--muted)}
-    .kpi .num{font-size:24px;font-weight:700}
-
-    .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-    .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-
-    .card{background:var(--card);border:1px solid var(--b);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin:0 0 16px}
-    .card h2{font-size:16px;margin:0;padding:12px 16px;border-bottom:1px solid var(--b)}
-    .pad{padding:12px 16px}
-
-    label{display:block;font-size:12px;color:#555;margin:8px 0 4px}
-    input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--b);border-radius:8px;font:inherit;background:#fff}
-    textarea{min-height:100px;resize:vertical}
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .btn{padding:8px 12px;border-radius:8px;border:1px solid var(--b);background:var(--fg);color:#fff;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--fg)}
-    .btn.sm{font-size:12px;padding:6px 8px;border-radius:6px}
-    .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;border:1px solid var(--b);background:var(--pill);font-size:12px}
-
+    :root{ --bg:#0f172a; --card:#111827; --muted:#1f2937; --text:#e5e7eb; --text2:#9ca3af; --brand:#3b82f6; --danger:#ef4444; }
+    *{box-sizing:border-box} body{margin:0;background:#0b1222;color:var(--text);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial}
+    a{color:var(--brand);text-decoration:none}
+    header{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #111320;background:#0b1222;position:sticky;top:0;z-index:10}
+    .container{max-width:1100px;margin:0 auto;padding:18px}
+    h1{margin:0 0 6px;font-size:28px}
+    .muted{color:var(--text2)}
+    .grid{display:grid;gap:12px}
+    @media(min-width:900px){ .grid-4{grid-template-columns:repeat(4,1fr)} .grid-2{grid-template-columns:1fr 1fr} }
+    .card{background:var(--card);border:1px solid #111320;border-radius:14px;padding:14px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .kpi .big{font-size:26px;font-weight:800}
+    input,button,select{background:#0b1222;border:1px solid #111320;color:var(--text);padding:10px;border-radius:10px}
+    button.primary{background:var(--brand);border:none;color:#fff;font-weight:700}
+    button.warn{background:var(--danger);border:none}
     table{width:100%;border-collapse:collapse}
-    th,td{font-size:14px;padding:8px 10px;border-bottom:1px solid var(--b);text-align:left;vertical-align:top}
-    th{background:#fafafa}
-
-    .error{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px}
-    .ok{color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px}
-
-    /* modal */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;padding:20px;z-index:50}
-    .modal.open{display:grid}
-    .modal .box{max-width:900px;width:100%;background:#fff;border-radius:12px;border:1px solid var(--b)}
-    .modal .hd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--b)}
-    .modal .bd{padding:12px 16px}
-    .modal .ft{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--b)}
-
-    @media (max-width:1100px){
-      .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .grid-2{grid-template-columns:1fr}
-      .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
-    }
+    th,td{padding:10px;border-bottom:1px solid #111320;text-align:left}
+    th{color:var(--text2);font-weight:600}
+    .pill{padding:5px 10px;border-radius:999px;font-size:12px;background:#0b1222;border:1px solid #111320;color:var(--text2)}
+    .right{margin-left:auto}
+    .toast{position:fixed;right:16px;bottom:16px;background:#0b1222;border:1px solid #111320;color:var(--text);padding:12px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.25s}
+    .toast.show{opacity:1;transform:translateY(0)}
   </style>
 </head>
 <body>
-  <div class="toolbar">
-    <div>
-      <h1>Admin</h1>
-      <p class="muted">Full control: Companies, Jobs, Applications, Accounts</p>
+  <header>
+    <div class="row" style="gap:14px">
+      <a href="index.html">← Back to site</a>
+      <span class="muted">Signed in as <span id="whoami">—</span></span>
     </div>
-    <div class="row">
-      <a class="link" href="/">← Back to site</a>
-    </div>
-  </div>
+    <button id="logoutBtn">Logout</button>
+  </header>
 
-  <!-- KPI cards -->
-  <div class="kpis" id="kpis">
-    <div class="kpi"><div class="label">Total Jobs</div><div class="num" id="k_total_jobs">–</div></div>
-    <div class="kpi"><div class="label">Active Jobs</div><div class="num" id="k_active_jobs">–</div></div>
-    <div class="kpi"><div class="label">Closed Jobs</div><div class="num" id="k_closed_jobs">–</div></div>
-    <div class="kpi"><div class="label">Featured Jobs</div><div class="num" id="k_featured_jobs">–</div></div>
+  <main class="container">
+    <h1>Admin</h1>
+    <div class="muted" style="margin-bottom:14px">Full control: Companies, Jobs, Applications, Accounts</div>
 
-    <div class="kpi"><div class="label">Total Applications</div><div class="num" id="k_total_apps">–</div></div>
-    <div class="kpi"><div class="label">Pending Applications</div><div class="num" id="k_pending_apps">–</div></div>
-    <div class="kpi"><div class="label">Reviewed Applications</div><div class="num" id="k_reviewed_apps">–</div></div>
-    <div class="kpi"><div class="label">Hired Applications</div><div class="num" id="k_hired_apps">–</div></div>
+    <!-- KPIs (simple) -->
+    <section class="grid grid-4" id="kpiGrid">
+      <div class="card kpi"><span class="muted">Total Jobs</span><div id="kpiJobs" class="big">0</div></div>
+      <div class="card kpi"><span class="muted">Active Jobs</span><div id="kpiJobsActive" class="big">0</div></div>
+      <div class="card kpi"><span class="muted">Total Applications</span><div id="kpiApps" class="big">0</div></div>
+      <div class="card kpi"><span class="muted">Total Companies</span><div id="kpiCompanies" class="big">0</div></div>
+    </section>
 
-    <div class="kpi"><div class="label">Shortlisted Applications</div><div class="num" id="k_shortlisted_apps">–</div></div>
-    <div class="kpi"><div class="label">Rejected Applications</div><div class="num" id="k_rejected_apps">–</div></div>
-    <div class="kpi"><div class="label">Total Companies</div><div class="num" id="k_total_companies">–</div></div>
-    <div class="kpi"><div class="label">Accounts</div><div class="num" id="k_total_profiles">–</div></div>
-  </div>
-
-  <!-- Charts -->
-  <div class="grid-2">
-    <div class="card">
-      <h2>Application Trends (Last 30 Days)</h2>
-      <div class="pad"><canvas id="ch_apps_30"></canvas></div>
-    </div>
-    <div class="card">
-      <h2>Jobs by Employment & Remote</h2>
-      <div class="pad">
-        <div class="grid-2" style="gap:20px">
-          <canvas id="ch_jobs_emp"></canvas>
-          <canvas id="ch_jobs_remote"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Companies manager -->
-  <div class="card">
-    <h2>Companies</h2>
-    <div class="pad">
-      <form id="companyForm" class="grid-3">
-        <div><label>Name</label><input id="co_name" required placeholder="Company name"></div>
-        <div><label>Website</label><input id="co_site" placeholder="https://…"></div>
-        <div><label>Owner email (optional)</label><input id="co_owner_email" placeholder="owner@email.com"></div>
-        <div class="row" style="grid-column:1/-1;justify-content:flex-start">
-          <button class="btn" type="submit">Create company</button>
-          <span id="companyMsg" class="muted"></span>
-        </div>
-      </form>
-      <div id="tbl_companies" style="margin-top:12px">Loading…</div>
-    </div>
-  </div>
-
-  <!-- Jobs -->
-  <div class="card">
-    <h2>Jobs</h2>
-    <div class="pad">
-      <div class="row" style="margin-bottom:8px">
-        <input id="jobSearch" placeholder="Search title/company/location" style="flex:1">
-        <select id="jobStatus">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="closed">Closed</option>
-        </select>
-        <select id="jobEmployment">
-          <option value="">All employment</option>
-          <option value="full_time">full_time</option>
-          <option value="part_time">part_time</option>
-          <option value="contract">contract</option>
-          <option value="internship">internship</option>
-        </select>
-        <button class="btn sm" id="jobReload">Reload</button>
-        <button class="btn sm ghost" id="openCreateJob">+ New job</button>
-      </div>
-      <div id="tbl_jobs">Loading…</div>
-    </div>
-  </div>
-
-  <div class="grid-2">
-    <div class="card">
-      <h2>Applications</h2>
-      <div class="pad"><div id="tbl_apps">Loading…</div></div>
-    </div>
-    <div class="card">
-      <h2>Accounts</h2>
-      <div class="pad"><div id="tbl_profiles">Loading…</div></div>
-    </div>
-  </div>
-
-  <!-- Edit/Create Job Modal -->
-  <div class="modal" id="jobModal">
-    <div class="box">
-      <div class="hd">
-        <strong id="jobModalTitle">New Job</strong>
-        <button class="btn sm ghost" id="closeJobModal">✕</button>
-      </div>
-      <div class="bd">
-        <form id="jobForm">
-          <div class="grid-3">
-            <div><label>Company</label><select id="jf_company_id" required></select></div>
-            <div><label>Title</label><input id="jf_title" required></div>
-            <div><label>Location</label><input id="jf_location" placeholder="Remote / City"></div>
-
-            <div>
-              <label>Employment</label>
-              <select id="jf_employment">
-                <option value="full_time">full_time</option>
-                <option value="part_time">part_time</option>
-                <option value="contract">contract</option>
-                <option value="internship">internship</option>
-              </select>
-            </div>
-            <div>
-              <label>Remote?</label>
-              <select id="jf_is_remote"><option value="true">Yes</option><option value="false">No</option></select>
-            </div>
-            <div>
-              <label>Status</label>
-              <select id="jf_status"><option value="active">active</option><option value="closed">closed</option></select>
-            </div>
-
-            <div><label>Salary min</label><input id="jf_salary_min" type="number" min="0" step="1"></div>
-            <div><label>Salary max</label><input id="jf_salary_max" type="number" min="0" step="1"></div>
-            <div><label>Currency</label><input id="jf_currency" placeholder="INR"></div>
-
-            <div class="row" style="align-items:center"><label style="margin:0">Featured</label><input id="jf_featured" type="checkbox" style="width:auto"></div>
+    <!-- COMPANIES -->
+    <section style="margin-top:16px">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h3 style="margin:0">Companies</h3>
+          <div class="row">
+            <input id="c_q" placeholder="Search name/website…"/>
+            <button id="c_search">Search</button>
           </div>
+        </div>
 
-          <input type="hidden" id="jf_id">
-        </form>
-        <div id="jobFormMsg" class="muted" style="margin-top:6px"></div>
-      </div>
-      <div class="ft">
-        <button class="btn ghost" id="cancelJob">Cancel</button>
-        <button class="btn" id="saveJob">Save</button>
-      </div>
-    </div>
-  </div>
+        <div class="row" style="margin-top:10px;gap:10px">
+          <input id="c_name" placeholder="Name"/>
+          <input id="c_website" placeholder="Website (https://…)"/>
+          <input id="c_owner_email" placeholder="Owner email (optional)"/>
+          <button class="primary" id="c_create">Create company</button>
+        </div>
 
-  <!-- Scripts (cache-busted, keep order) -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="config.js?v=9"></script>
-  <script src="app.js?v=9"></script>
+        <div style="overflow:auto;margin-top:12px">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Website</th><th>Owner</th><th>Created</th><th style="width:160px">Actions</th></tr>
+            </thead>
+            <tbody id="c_tbody"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
 
   <script>
-  window.addEventListener('load', async () => {
-    try {
-      // --- client ---
-      const sb = (window.sb && window.sb.supabase) ? window.sb.supabase :
-        window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__, {
-          auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-        });
+    const db = window.supabase;
 
-      const el = id => document.getElementById(id);
-      const bySel = s => document.querySelector(s);
+    // --- helpers
+    const showToast = (msg, ok=true)=>{
+      const t=document.getElementById('toast');
+      t.textContent = msg;
+      t.style.borderColor = ok ? 'var(--brand)' : 'var(--danger)';
+      t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000);
+    };
+    const escapeHTML = s => (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
 
-      const renderError = (id, msg) => { el(id).innerHTML = '<div class="error"><strong>Error:</strong> '+msg+'</div>'; };
-      const renderTable = (id, rows, cols) => {
-        const host = el(id);
-        if (!rows || rows.length === 0){ host.innerHTML = '<em>No data</em>'; return; }
-        const thead = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead>';
-        const tbody = '<tbody>' + rows.map(r => (
-          '<tr>' + cols.map(c => `<td>${(typeof c.render==='function'?c.render(r): (r[c.key] ?? ''))}</td>`).join('') + '</tr>'
-        )).join('') + '</tbody>';
-        host.innerHTML = `<table>${thead}${tbody}</table>`;
-      };
-
-      // --- guard ---
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user){ el('kpis').insertAdjacentHTML('afterend','<div class="error">Not logged in.</div>'); return; }
-
-      const roleRow = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle();
-      const isAdmin = !roleRow.error && ['admin','super_admin'].includes(String(roleRow.data?.role||'').toLowerCase());
-      if (!isAdmin){ el('kpis').insertAdjacentHTML('afterend','<div class="error">You are not an admin.</div>'); return; }
-
-      // ---------- KPI COUNTS ----------
-      async function loadCounts(){
-        // If v_admin_counts exists, use it; else compute with fallback queries
-        let view = await sb.from('v_admin_counts').select('*').maybeSingle();
-        if (!view.error && view.data){
-          const m = view.data;
-          setK('total_jobs', m.total_jobs);
-          setK('active_jobs', m.active_jobs);
-          setK('closed_jobs', m.closed_jobs);
-          setK('featured_jobs', m.featured_jobs);
-          setK('total_companies', m.total_companies);
-          setK('total_apps', m.total_apps);
-          setK('pending_apps', m.pending_apps);
-          setK('reviewed_apps', m.reviewed_apps);
-          setK('shortlisted_apps', m.shortlisted_apps);
-          setK('hired_apps', m.hired_apps);
-          setK('rejected_apps', m.rejected_apps);
-          // total profiles
-          const p = await sb.from('profiles').select('id', { count:'exact', head:true });
-          setK('total_profiles', p.count ?? '–');
-          return;
-        }
-        // Fallback manual counts
-        const [jobsA, jobsF, jobsC, comps, appsTotal, appsPending, appsRev, appsShort, appsHired, appsRej, profs] = await Promise.all([
-          sb.from('jobs').select('id', { count:'exact', head:true }),
-          sb.from('jobs').select('id', { count:'exact', head:true }).eq('status','active'),
-          sb.from('jobs').select('id', { count:'exact', head:true }).eq('status','closed'),
-          sb.from('companies').select('id', { count:'exact', head:true }),
-          sb.from('applications').select('id', { count:'exact', head:true }),
-          sb.from('applications').select('id', { count:'exact', head:true }).eq('status','pending'),
-          sb.from('applications').select('id', { count:'exact', head:true }).eq('status','reviewed'),
-          sb.from('applications').select('id', { count:'exact', head:true }).eq('status','shortlisted'),
-          sb.from('applications').select('id', { count:'exact', head:true }).eq('status','hired'),
-          sb.from('applications').select('id', { count:'exact', head:true }).eq('status','rejected'),
-          sb.from('profiles').select('id', { count:'exact', head:true })
-        ]);
-        setK('total_jobs', jobsA.count ?? '–');
-        setK('active_jobs', jobsF.count ?? '–');
-        setK('closed_jobs', jobsC.count ?? '–');
-        // featured
-        const feat = await sb.from('jobs').select('id',{count:'exact',head:true}).eq('featured',true);
-        setK('featured_jobs', feat.count ?? '–');
-        setK('total_companies', comps.count ?? '–');
-        setK('total_apps', appsTotal.count ?? '–');
-        setK('pending_apps', appsPending.count ?? '–');
-        setK('reviewed_apps', appsRev.count ?? '–');
-        setK('shortlisted_apps', appsShort.count ?? '–');
-        setK('hired_apps', appsHired.count ?? '–');
-        setK('rejected_apps', appsRej.count ?? '–');
-        setK('total_profiles', profs.count ?? '–');
-      }
-      function setK(name, val){ const t=el('k_'+name); if (t) t.textContent = val ?? '–'; }
-
-      // ---------- CHARTS ----------
-      let chApps30, chJobsEmp, chJobsRemote;
-
-      async function loadCharts(){
-        // Applications last 30 days (by day)
-        const since = new Date(); since.setDate(since.getDate()-29);
-        const a = await sb.from('applications')
-          .select('created_at')
-          .gte('created_at', since.toISOString());
-        const days = [...Array(30)].map((_,i)=> {
-          const d = new Date(since); d.setDate(since.getDate()+i);
-          return d.toISOString().slice(0,10);
-        });
-        const counts = days.map(d => (a.data||[]).filter(x=> (x.created_at||'').slice(0,10)===d).length);
-
-        if (chApps30) chApps30.destroy();
-        chApps30 = new Chart(el('ch_apps_30'), {
-          type:'line',
-          data:{ labels:days, datasets:[{ label:'Applications', data:counts, tension:.3 }] },
-          options:{ scales:{ x:{ ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:6 } } } }
-        });
-
-        // Jobs by employment
-        const byEmp = await sb.from('jobs').select('employment');
-        const groups = ['full_time','part_time','contract','internship'];
-        const empCounts = groups.map(g => (byEmp.data||[]).filter(x => (x.employment||'')===g).length);
-        if (chJobsEmp) chJobsEmp.destroy();
-        chJobsEmp = new Chart(el('ch_jobs_emp'), {
-          type:'bar',
-          data:{ labels:groups, datasets:[{ label:'Jobs', data:empCounts }] },
-          options:{ plugins:{ legend:{ display:false } } }
-        });
-
-        // Remote vs Onsite
-        const byRem = await sb.from('jobs').select('is_remote');
-        const remYes = (byRem.data||[]).filter(x=>x.is_remote===true).length;
-        const remNo  = (byRem.data||[]).filter(x=>x.is_remote===false).length;
-        if (chJobsRemote) chJobsRemote.destroy();
-        chJobsRemote = new Chart(el('ch_jobs_remote'), {
-          type:'doughnut',
-          data:{ labels:['Remote','Onsite'], datasets:[{ data:[remYes, remNo] }] },
-          options:{ plugins:{ legend:{ position:'bottom' } } }
-        });
-      }
-
-      // ---------- COMPANIES ----------
-      async function loadCompanyOptions(){
-        const sel = el('jf_company_id'); if (!sel) return;
-        const r = await sb.from('companies').select('id,name').order('name');
-        sel.innerHTML = (r.data||[]).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-      }
-      async function loadCompaniesTable(){
-        const r = await sb.from('companies').select('id,name,website,owner_id,created_at').order('created_at',{ascending:false}).limit(100);
-        if (r.error){ renderError('tbl_companies', r.error.message); return; }
-        renderTable('tbl_companies', r.data || [], [
-          {key:'id',label:'ID'}, {key:'name',label:'Name'}, {key:'website',label:'Website'},
-          {key:'owner_id',label:'Owner'}, {key:'created_at',label:'Created'},
-          {label:'', render: row => `<button class="btn sm ghost" data-act="delCo" data-id="${row.id}">Delete</button>`}
-        ]);
-        el('tbl_companies').querySelectorAll('[data-act="delCo"]').forEach(b=>{
-          b.addEventListener('click', async () => {
-            if (!confirm('Delete this company and its jobs?')) return;
-            const id = b.getAttribute('data-id');
-            const d = await sb.from('companies').delete().eq('id', id);
-            if (d.error) alert(d.error.message);
-            await Promise.all([loadCompaniesTable(), loadCounts(), loadJobsTable(), loadCompanyOptions()]);
-          });
-        });
-      }
-      const companyForm = el('companyForm');
-      companyForm.addEventListener('submit', async (e)=>{
-        e.preventDefault();
-        const name  = el('co_name').value.trim();
-        const site  = el('co_site').value.trim() || null;
-        const owner = el('co_owner_email').value.trim();
-        const msgEl = el('companyMsg'); msgEl.textContent = 'Creating…';
-
-        let owner_id = null;
-        if (owner){
-          const r = await sb.from('profiles').select('id').ilike('email', owner).maybeSingle();
-          if (r.error){ alert(r.error.message); msgEl.textContent=''; return; }
-          owner_id = r.data?.id || null;
-        }
-        const ins = await sb.from('companies').insert([{ name, website: site, owner_id }]).select('id').maybeSingle();
-        if (ins.error){ alert(ins.error.message); msgEl.textContent=''; return; }
-        msgEl.textContent = 'Created ✔'; companyForm.reset();
-        await Promise.all([loadCompanyOptions(), loadCompaniesTable(), loadCounts()]);
-        setTimeout(()=>msgEl.textContent='', 1200);
-      });
-
-      // ---------- JOBS ----------
-      const jobModal = el('jobModal');
-      const openModal = () => jobModal.classList.add('open');
-      const closeModal = () => jobModal.classList.remove('open');
-      el('closeJobModal').onclick = closeModal;
-      el('cancelJob').onclick = closeModal;
-      el('openCreateJob').onclick = () => openJobEditor(); // new
-
-      function getJobFormPayload(){
-        const v = id => el(id).value;
-        const pv = id => {
-          const raw = el(id).value;
-          return raw ? parseInt(raw,10) : null;
-        };
-        return {
-          company_id: v('jf_company_id') || null,
-          title: v('jf_title').trim(),
-          location: v('jf_location').trim() || null,
-          employment: v('jf_employment'),
-          is_remote: el('jf_is_remote').value === 'true',
-          status: v('jf_status'),
-          salary_min: pv('jf_salary_min'),
-          salary_max: pv('jf_salary_max'),
-          currency: v('jf_currency').trim() || null,
-          featured: el('jf_featured').checked
-        };
-      }
-
-      async function openJobEditor(row){
-        bySel('#jobModalTitle').textContent = row ? 'Edit Job' : 'New Job';
-        el('jf_id').value = row?.id || '';
-        await loadCompanyOptions();
-        if (row){
-          el('jf_company_id').value = row.company_id || '';
-          el('jf_title').value = row.title || '';
-          el('jf_location').value = row.location || '';
-          el('jf_employment').value = row.employment || 'full_time';
-          el('jf_is_remote').value = row.is_remote ? 'true' : 'false';
-          el('jf_status').value = row.status || 'active';
-          el('jf_salary_min').value = row.salary_min ?? '';
-          el('jf_salary_max').value = row.salary_max ?? '';
-          el('jf_currency').value = row.currency || '';
-          el('jf_featured').checked = !!row.featured;
-        }else{
-          el('jobForm').reset();
-          el('jf_status').value = 'active';
-          el('jf_employment').value = 'full_time';
-          el('jf_is_remote').value = 'false';
-          el('jf_featured').checked = false;
-        }
-        openModal();
-      }
-
-      async function saveJob(){
-        const id = el('jf_id').value;
-        const payload = getJobFormPayload();
-        el('jobFormMsg').textContent = 'Saving…';
-        let r;
-        if (id){
-          r = await sb.from('jobs').update(payload).eq('id', id).select('id').maybeSingle();
-        }else{
-          r = await sb.from('jobs').insert([payload]).select('id').maybeSingle();
-        }
-        if (r.error){ el('jobFormMsg').innerHTML = '<span class="error">'+r.error.message+'</span>'; return; }
-        el('jobFormMsg').textContent = 'Saved ✔';
-        await Promise.all([loadJobsTable(), loadCounts(), loadCharts()]);
-        setTimeout(()=>{ el('jobFormMsg').textContent=''; closeModal(); }, 400);
-      }
-      el('saveJob').onclick = saveJob;
-
-      el('jobReload').onclick = ()=> loadJobsTable();
-      el('jobEmployment').onchange = ()=> loadJobsTable();
-      el('jobStatus').onchange = ()=> loadJobsTable();
-      el('jobSearch').oninput = ()=> loadJobsTable();
-
-      async function loadJobsTable(){
-        const [jobs, comp] = await Promise.all([
-          sb.from('jobs')
-            .select('id,company_id,title,location,employment,is_remote,status,featured,salary_min,salary_max,currency,created_at,companies(name)')
-            .order('created_at',{ascending:false})
-            .limit(200),
-          sb.from('companies').select('id,name')
-        ]);
-        if (jobs.error){ renderError('tbl_jobs', jobs.error.message); return; }
-
-        const filterStatus = el('jobStatus').value;
-        const filterEmp = el('jobEmployment').value;
-        const term = el('jobSearch').value.trim().toLowerCase();
-
-        let list = jobs.data || [];
-        if (filterStatus) list = list.filter(r => (r.status||'')===filterStatus);
-        if (filterEmp) list = list.filter(r => (r.employment||'')===filterEmp);
-        if (term) list = list.filter(r =>
-          (r.title||'').toLowerCase().includes(term) ||
-          (r.location||'').toLowerCase().includes(term) ||
-          (r.companies?.name||'').toLowerCase().includes(term)
-        );
-
-        renderTable('tbl_jobs', list, [
-          {key:'id',label:'ID'},
-          {label:'Title', render:r=> `<div><strong>${r.title||''}</strong><div class="muted" style="font-size:12px">${r.companies?.name||''}</div></div>`},
-          {label:'Meta', render:r=> `<span class="pill">${(r.employment||'').replace('_',' ')}</span> ${r.is_remote?'<span class="pill">Remote</span>':''} ${r.featured?'<span class="pill">★ Featured</span>':''}`},
-          {label:'Location', render:r=> r.location || ''},
-          {label:'Salary', render:r=> [r.currency || '', r.salary_min??'', r.salary_max ? ('-'+r.salary_max):''].join(' ').trim()},
-          {key:'status',label:'Status'},
-          {key:'created_at',label:'Created'},
-          {label:'Actions', render:r=> `
-            <div class="row">
-              <button class="btn sm ghost" data-act="edit" data-id="${r.id}">Edit</button>
-              <button class="btn sm ghost" data-act="toggleFeat" data-id="${r.id}">${r.featured?'Unfeature':'Feature'}</button>
-              <button class="btn sm ghost" data-act="toggleStat" data-id="${r.id}">${r.status==='active'?'Close':'Open'}</button>
-              <button class="btn sm" data-act="del" data-id="${r.id}">Delete</button>
-            </div>`}
-        ]);
-
-        // wire actions
-        const host = el('tbl_jobs');
-        host.querySelectorAll('[data-act="edit"]').forEach(b=>{
-          b.onclick = ()=> openJobEditor(list.find(x=>x.id===b.getAttribute('data-id')));
-        });
-        host.querySelectorAll('[data-act="toggleFeat"]').forEach(b=>{
-          b.onclick = async ()=>{
-            const id=b.getAttribute('data-id');
-            const row=list.find(x=>x.id===id);
-            const u=await sb.from('jobs').update({featured:!row.featured}).eq('id',id);
-            if(u.error) alert(u.error.message);
-            await Promise.all([loadJobsTable(), loadCounts()]);
-          };
-        });
-        host.querySelectorAll('[data-act="toggleStat"]').forEach(b=>{
-          b.onclick = async ()=>{
-            const id=b.getAttribute('data-id');
-            const row=list.find(x=>x.id===id);
-            const next=row.status==='active'?'closed':'active';
-            const u=await sb.from('jobs').update({status:next}).eq('id',id);
-            if(u.error) alert(u.error.message);
-            await Promise.all([loadJobsTable(), loadCounts()]);
-          };
-        });
-        host.querySelectorAll('[data-act="del"]').forEach(b=>{
-          b.onclick = async ()=>{
-            if(!confirm('Delete this job?')) return;
-            const id=b.getAttribute('data-id');
-            const d=await sb.from('jobs').delete().eq('id',id);
-            if(d.error) alert(d.error.message);
-            await Promise.all([loadJobsTable(), loadCounts(), loadCharts()]);
-          };
-        });
-      }
-
-      // ---------- APPLICATIONS ----------
-      async function loadApplications(){
-        const a = await sb.from('applications').select('id,job_id,applicant_id,status,created_at').order('created_at',{ascending:false}).limit(200);
-        if (a.error){ renderError('tbl_apps', a.error.message); return; }
-
-        const jobIds = [...new Set((a.data||[]).map(x=>x.job_id))];
-        const userIds = [...new Set((a.data||[]).map(x=>x.applicant_id))];
-        const [j, p] = await Promise.all([
-          sb.from('jobs').select('id,title,companies(name)').in('id', jobIds),
-          sb.from('profiles').select('id,full_name,email').in('id', userIds)
-        ]);
-        const jobMap = new Map((j.data||[]).map(r=>[r.id,r]));
-        const userMap = new Map((p.data||[]).map(r=>[r.id,r]));
-
-        const opts = ['pending','reviewed','shortlisted','hired','rejected'];
-        renderTable('tbl_apps', a.data || [], [
-          {label:'Job', render:r=>`${jobMap.get(r.job_id)?.title||'(Job)'} — ${jobMap.get(r.job_id)?.companies?.name||''}`},
-          {label:'Applicant', render:r=>{
-            const u=userMap.get(r.applicant_id)||{};
-            return `${u.full_name||''} ${u.email?('('+u.email+')'):''}`;
-          }},
-          {label:'Status', render:r=>{
-            return `<select data-app="${r.id}">${opts.map(o=>`<option value="${o}" ${o===r.status?'selected':''}>${o}</option>`).join('')}</select>`;
-          }},
-          {key:'created_at',label:'Applied'},
-          {label:'', render:r=> `<button class="btn sm ghost" data-act="delApp" data-id="${r.id}">Delete</button>`}
-        ]);
-
-        const host = el('tbl_apps');
-        host.querySelectorAll('select[data-app]').forEach(sel=>{
-          sel.onchange = async ()=>{
-            const id=sel.getAttribute('data-app');
-            const v=sel.value;
-            const r=await sb.from('applications').update({status:v}).eq('id',id);
-            if(r.error) alert(r.error.message); else loadCounts();
-          };
-        });
-        host.querySelectorAll('[data-act="delApp"]').forEach(b=>{
-          b.onclick = async ()=>{
-            if(!confirm('Delete this application?')) return;
-            const id=b.getAttribute('data-id');
-            const r=await sb.from('applications').delete().eq('id',id);
-            if(r.error) alert(r.error.message);
-            await Promise.all([loadApplications(), loadCounts()]);
-          };
-        });
-      }
-
-      // ---------- PROFILES ----------
-      async function loadProfiles(){
-        const r = await sb.from('profiles').select('id,full_name,email,role,created_at').order('created_at',{ascending:false}).limit(200);
-        if (r.error){ renderError('tbl_profiles', r.error.message); return; }
-        const roleOpts = ['user','admin','super_admin'];
-        renderTable('tbl_profiles', r.data || [], [
-          {key:'id',label:'ID'}, {key:'full_name',label:'Name'}, {key:'email',label:'Email'},
-          {label:'Role', render:x=>`<select data-prof="${x.id}">${roleOpts.map(o=>`<option value="${o}" ${String(x.role||'').toLowerCase()===o?'selected':''}>${o}</option>`).join('')}</select>`},
-          {key:'created_at',label:'Created'}
-        ]);
-        el('tbl_profiles').querySelectorAll('select[data-prof]').forEach(sel=>{
-          sel.onchange = async ()=>{
-            const id=sel.getAttribute('data-prof');
-            const v=sel.value;
-            const r=await sb.from('profiles').update({role:v}).eq('id',id);
-            if(r.error) alert(r.error.message); else alert('Updated ✔');
-          };
-        });
-      }
-
-      // ---------- boot ----------
-      await Promise.all([loadCounts(), loadCharts(), loadCompaniesTable(), loadJobsTable(), loadApplications(), loadProfiles()]);
-      console.log('[Admin] ready');
-
-    } catch (e) {
-      console.error(e);
-      document.body.insertAdjacentHTML('beforeend', `<div class="error">Admin init failed: ${e?.message||e}</div>`);
+    // --- auth guard
+    async function guard(){
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { location.href = 'index.html'; return null; }
+      document.getElementById('whoami').textContent = session.user.email;
+      return session.user;
     }
-  });
-  </script>
-</body>
-</html>
+    document.getElementById('logoutBtn').onclick = async ()=>{
+      await db.auth.signOut(); location.href = 'index.html';
+    };
+
+    // --- KPIs (lightweight)
+    async function loadKPIs(){
+      const [{ data: jobs }, { data: apps }, { data: comps }] = await Promise.all([
+        db.from('jobs').select('id,status'),
+        db.from('applications').select('id'),
+        db.from('companies').select('id')
+      ]);
+      document.getElementById('kpiJobs').textContent = jobs?.length ?? 0;
+      document.getElementById('kpiJobsActive').textContent = (jobs||[]).filter(j=>j.status==='active').length;
+      document.getElementById('kpiApps').textContent = apps?.length ?? 0;
+      document.getElementById('kpiCompanies').textContent = comps?.length ?? 0;
+    }
+
+    // --- Companies list
+    let c_page = 1, C_PAGE = 20, c_total = 0, c_lastQ = '';
+    function c_filters(){ return { q: document.getElementById('c_q').value.trim() }; }
+
+    async function c_count(f){
+      let q = db.from('companies').select('id',{coun
