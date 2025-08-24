@@ -1,53 +1,49 @@
-```html
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>GrowIndia — Account</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="config.js?v=13"></script>
-<style>
-:root{ --bg:#f6f8fc; --card:#fff; --text:#0f172a; --text2:#475569; --brand:#2563eb; --border:#e5e7eb; }
-*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Inter}
-.wrap{max-width:960px;margin:40px auto;padding:0 16px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-h1{margin:0 0 12px} .muted{color:var(--text2)}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.btn{background:var(--brand);border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
-.btn.alt{background:#e5e7eb;color:#111827}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GrowIndia — Account</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=13"></script>
+  <style>
+    :root{ --bg:#f6f8fc; --card:#fff; --text:#0f172a; --text2:#475569; --brand:#2563eb; --border:#e5e7eb; }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Inter}
+    .wrap{max-width:960px;margin:40px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    h1{margin:0 0 12px} .muted{color:var(--text2)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{background:var(--brand);border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn.alt{background:#e5e7eb;color:#111827}
+  </style>
 </head>
 <body>
-<div class="wrap">
-<div class="card">
-<h1>Account</h1>
-<p class="muted" id="who">Checking session…</p>
-<div class="row" style="margin-top:8px">
-<button class="btn" id="goAdmin">Go to Admin</button>
-<button class="btn alt" id="logout">Logout</button>
-<a class="btn alt" href="index.html">Back to site</a>
-</div>
-</div>
-</div>
+  <div class="wrap">
+    <div class="card">
+      <h1>Account</h1>
+      <p class="muted" id="who">Checking session…</p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="goAdmin">Go to Admin</button>
+        <button class="btn alt" id="logout">Logout</button>
+        <a class="btn alt" href="index.html">Back to site</a>
+      </div>
+    </div>
+  </div>
 
+  <script>
+    const db = window.supabase;
+    (async () => {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { location.replace('index.html'); return; }
+      document.getElementById('who').textContent = `Signed in as ${session.user.email}`;
+    })();
 
-<script>
-const db = window.supabase;
-(async () => {
-const { data: { session } } = await db.auth.getSession();
-if (!session) { location.replace('index.html'); return; }
-document.getElementById('who').textContent = `Signed in as ${session.user.email}`;
-})();
-
-
-document.getElementById('goAdmin').onclick = () => location.href='admin.html';
-document.getElementById('logout').onclick = async () => {
-try { await db.auth.signOut({ scope:'global' }); } catch(_){}
-try { await db.auth.signOut({ scope:'local' }); } catch(_){}
-location.replace('index.html');
-};
-</script>
+    document.getElementById('goAdmin').onclick = () => location.href='admin.html';
+    document.getElementById('logout').onclick = async () => {
+      try { await db.auth.signOut({ scope:'global' }); } catch(_){}
+      try { await db.auth.signOut({ scope:'local'  }); } catch(_){}
+      location.replace('index.html');
+    };
+  </script>
 </body>
 </html>
-```
