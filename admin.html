@@ -203,7 +203,7 @@
       const show=(el,flag=true)=> el.classList[flag?'add':'remove']('show');
       const toast=(msg,ok=true)=>{ const t=document.getElementById('toast'); t.textContent=msg; t.style.background=ok?'#111827':'#991b1b'; show(t,true); setTimeout(()=>show(t,false),2200); };
       const fmtINR=(n)=> n? new Intl.NumberFormat('en-IN').format(n):'-';
-      const escapeHTML = (s) => (s ?? '').toString().replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
+      const escapeHTML = (s) => (s ?? '').toString().replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'": '&#39;'}[m]));
       const v=(id)=> document.getElementById(id).value.trim();
       const n=(id)=>{ const x=document.getElementById(id).value; return x===''? null : Number(x); };
 
