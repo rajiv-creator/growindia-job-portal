@@ -9,29 +9,33 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- Supabase v2 -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <!-- Your project keys & client: must set window.supabase = createClient(...) -->
-  <script src="config.js?v=12"></script>
+  <!-- Your project keys & client: must set window.supabase = createClient(...) in config.js -->
+  <script src="config.js?v=13"></script>
 
   <style>
-    :root { --bg:#0f172a; --card:#111827; --muted:#1f2937; --text:#e5e7eb; --text2:#9ca3af; --brand:#22c55e; --brand2:#3b82f6; --accent:#f59e0b; --danger:#ef4444; }
+    /* Light theme */
+    :root {
+      --bg:#f5f7fb; --card:#ffffff; --muted:#eef2f7; --text:#0f172a; --text2:#475569;
+      --brand:#2563eb; --brand2:#2563eb; --accent:#f59e0b; --danger:#ef4444; --border:#e5e7eb;
+    }
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial}
-    a{color:inherit;text-decoration:none}
+    a{color:var(--brand);text-decoration:none}
     .wrap{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-    .side{background:#0b1222;border-right:1px solid #111320;padding:16px 12px;position:sticky;top:0;height:100vh}
-    .brand{display:flex;gap:10px;align-items:center;font-weight:700;margin-bottom:18px}
-    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--brand)}
+    .side{background:#ffffff;border-right:1px solid var(--border);padding:16px 12px;position:sticky;top:0;height:100vh}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700;margin-bottom:18px;color:var(--text)}
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:#16a34a}
     .nav a{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;color:var(--text2)}
     .nav a.active, .nav a:hover{background:var(--muted);color:var(--text)}
-    .top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #111320;background:#0b1222;position:sticky;top:0;z-index:5}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:#ffffff;position:sticky;top:0;z-index:5}
     .search{display:flex;gap:10px;align-items:center;background:var(--muted);padding:8px 12px;border-radius:10px;min-width:280px}
     .search input{all:unset;color:var(--text);width:260px}
     .user{display:flex;gap:10px;align-items:center}
     .main{padding:18px}
     .grid{display:grid;gap:14px}
     @media(min-width:900px){ .grid-4{grid-template-columns:repeat(4,1fr)} .grid-2{grid-template-columns:1fr 1fr} }
-    .card{background:var(--card);border:1px solid #111320;border-radius:14px;padding:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
     .kpi{display:flex;flex-direction:column;gap:6px}
-    .kpi .big{font-size:26px;font-weight:700}
+    .kpi .big{font-size:26px;font-weight:800}
     .muted{color:var(--text2)}
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
     .btn{background:var(--brand2);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
@@ -39,28 +43,28 @@
     .btn.warn{background:var(--danger)}
     .btn:disabled{opacity:.6;cursor:not-allowed}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #111320;text-align:left}
+    th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left}
     th{color:var(--text2);font-weight:600}
-    .pill{padding:5px 10px;border-radius:999px;font-size:12px}
-    .ok{background:rgba(34,197,94,.15);color:#86efac}
-    .draft{background:rgba(245,158,11,.15);color:#fcd34d}
-    .closed{background:rgba(239,68,68,.15);color:#fca5a5}
+    .pill{padding:5px 10px;border-radius:999px;font-size:12px;border:1px solid var(--border);background:#fafafa}
+    .ok{background:#ecfdf5;color:#065f46;border-color:#bbf7d0}
+    .draft{background:#fffbeb;color:#92400e;border-color:#fde68a}
+    .closed{background:#fef2f2;color:#991b1b;border-color:#fecaca}
     .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .toolbar input, .toolbar select{background:#0b1222;border:1px solid #111320;color:var(--text);padding:8px 10px;border-radius:10px}
+    .toolbar input, .toolbar select{background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:10px}
     .pagination{display:flex;gap:8px;align-items:center}
     .empty{padding:24px;text-align:center;color:var(--text2)}
-    .toast{position:fixed;right:16px;bottom:16px;background:#0b1222;border:1px solid #111320;color:var(--text);padding:12px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.25s}
+    .toast{position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:12px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.25s}
     .toast.show{opacity:1;transform:translateY(0)}
     /* Modal */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
     .modal.show{display:flex}
-    .panel{background:#0b1222;border:1px solid #111320;border-radius:16px;max-width:800px;width:100%}
-    .panel .head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #111320}
+    .panel{background:#ffffff;border:1px solid var(--border);border-radius:16px;max-width:800px;width:100%}
+    .panel .head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
     .panel .body{padding:16px}
     .form{display:grid;gap:12px}
     @media(min-width:760px){ .form{grid-template-columns:1fr 1fr} .form .full{grid-column:1/-1} }
     label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px}
-    input[type=text], input[type=number], input[type=email], input[type=url], textarea, select{width:100%;background:#0b1222;border:1px solid #1f2537;color:var(--text);padding:10px;border-radius:10px}
+    input[type=text], input[type=number], input[type=email], input[type=url], textarea, select{width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:10px}
     textarea{min-height:100px;resize:vertical}
   </style>
 </head>
@@ -127,7 +131,7 @@
               <table id="jobsTable">
                 <thead>
                   <tr>
-                    <th>Title</th><th>Company</th><th>Location</th><th>Type</th><th>Salary</th><th>Status</th><th style="width:160px">Actions</th>
+                    <th>Title</th><th>Company</th><th>Location</th><th>Type</th><th>Salary</th><th>Status</th><th style="width:220px">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="jobsTbody">
@@ -165,7 +169,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Name</th><th>Email</th><th>Website</th><th>Phone</th><th>Verified</th><th style="width:160px">Actions</th>
+                    <th>Name</th><th>Email</th><th>Website</th><th>Phone</th><th>Verified</th><th style="width:220px">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="empTbody">
@@ -207,7 +211,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Candidate</th><th>Email</th><th>Job</th><th>Status</th><th>Resume</th><th style="width:160px">Actions</th>
+                    <th>Candidate</th><th>Email</th><th>Job</th><th>Status</th><th>Resume</th><th style="width:220px">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="appsTbody">
@@ -367,8 +371,9 @@
   <script>
     // ---- Helpers ----
     const db = window.supabase; // from config.js
+    if(!db){ alert('Supabase client not found. Check config.js is loaded after supabase-js CDN.'); }
     const show = (el, flag=true)=> el.classList[flag?'add':'remove']('show');
-    const toast = (msg, ok=true)=>{ const t=document.getElementById('toast'); t.textContent = msg; t.style.borderColor = ok ? 'var(--brand)' : 'var(--danger)'; show(t,true); setTimeout(()=>show(t,false),2200); };
+    const toast = (msg, ok=true)=>{ const t=document.getElementById('toast'); t.textContent = msg; t.style.background = ok ? '#111827' : '#991b1b'; show(t,true); setTimeout(()=>show(t,false),2200); };
     const fmtINR = (n)=> n? new Intl.NumberFormat('en-IN').format(n):'-';
     function escapeHTML(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
     function v(id){ return document.getElementById(id).value.trim(); }
@@ -377,10 +382,10 @@
     // ---- Auth ----
     async function guard() {
       const { data: { session } } = await db.auth.getSession();
-      if (!session) { location.href = 'post.auth.html'; return; }
+      if (!session) { location.href = 'post-auth.html'; return; }
       document.getElementById('whoami').textContent = session.user.email;
     }
-    document.getElementById('logoutBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await db.auth.signOut(); location.href='post.auth.html'; });
+    document.getElementById('logoutBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await db.auth.signOut(); location.href='post-auth.html'; });
 
     // ---- Router (show sections) ----
     const sections = ['dashboardSection','jobsSection','employersSection','applicationsSection'];
@@ -410,10 +415,10 @@
       const days = [...Array(14)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()-(13-i)); return d.toISOString().slice(0,10); });
       const countByDay = days.map(d => apps.filter(a => (a.created_at||'').slice(0,10)===d).length);
       const ctx1 = document.getElementById('appsLine'); appsLineChart?.destroy();
-      appsLineChart = new Chart(ctx1, { type:'line', data:{ labels:days, datasets:[{ label:'Applications', data:countByDay, tension:.35, fill:false }]}, options:{ plugins:{ legend:{ display:false }}, scales:{ x:{ ticks:{ color:'#9ca3af'}}, y:{ ticks:{ color:'#9ca3af'}}}} });
+      appsLineChart = new Chart(ctx1, { type:'line', data:{ labels:days, datasets:[{ label:'Applications', data:countByDay, tension:.35, fill:false }]}, options:{ plugins:{ legend:{ display:false }}, scales:{ x:{ ticks:{ color:'#64748b'}}, y:{ ticks:{ color:'#64748b'}}}} });
       const sCount = { active:0, draft:0, closed:0 }; jobs.forEach(j => sCount[j.status] = (sCount[j.status]||0)+1);
       const ctx2 = document.getElementById('jobsPie'); jobsPieChart?.destroy();
-      jobsPieChart = new Chart(ctx2, { type:'doughnut', data:{ labels:['Active','Draft','Closed'], datasets:[{ data:[sCount.active||0, sCount.draft||0, sCount.closed||0] }]}, options:{ plugins:{ legend:{ labels:{ color:'#9ca3af' }}}}});
+      jobsPieChart = new Chart(ctx2, { type:'doughnut', data:{ labels:['Active','Draft','Closed'], datasets:[{ data:[sCount.active||0, sCount.draft||0, sCount.closed||0] }]}, options:{ plugins:{ legend:{ labels:{ color:'#64748b' }}}}});
     }
 
     // ---- JOBS CRUD ----
@@ -430,11 +435,13 @@
             <td>
               <button class="btn alt" data-edit="${j.id}">Edit</button>
               <button class="btn warn" data-del="${j.id}">Delete</button>
+              <button class="btn alt" data-job-status="active" data-id="${j.id}">Activate</button>
+              <button class="btn alt" data-job-status="draft" data-id="${j.id}">Draft</button>
+              <button class="btn alt" data-job-status="closed" data-id="${j.id}">Close</button>
             </td>
           </tr>`; }).join(''); } document.getElementById('jobsCount').textContent = `${totalRows} result${totalRows===1?'':'s'}`; document.getElementById('pageInfo').textContent = `${page} / ${Math.max(1, Math.ceil(totalRows/PAGE_SIZE))}`; tbody.querySelectorAll('button[data-edit]').forEach(b=>b.onclick=()=>openJobModal(b.dataset.edit)); tbody.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>deleteJob(b.dataset.del)); }
     document.getElementById('prevPage').onclick = ()=> loadJobs(page-1); document.getElementById('nextPage').onclick = ()=> loadJobs(page+1);
     ['jobSearch','jobStatus','jobType'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', ()=> loadJobs(1)); el.addEventListener('change', ()=> loadJobs(1)); });
-    document.getElementById('topSearch').addEventListener('input', (e)=>{ const val=e.target.value; const active = document.querySelector('#nav a.active')?.dataset.target; if(active==='jobsSection'){ document.getElementById('jobSearch').value = val; loadJobs(1); } if(active==='employersSection'){ document.getElementById('empSearch').value = val; loadEmployers(1); } if(active==='applicationsSection'){ document.getElementById('appSearch').value = val; loadApplications(1); } });
 
     const jobModal = document.getElementById('jobModal'); const modalTitle = document.getElementById('modalTitle'); const jobForm = document.getElementById('jobForm');
     document.getElementById('addJobBtn').onclick = ()=> openJobModal(null);
@@ -443,6 +450,10 @@
     async function openJobModal(id){ jobForm.reset(); document.getElementById('job_id').value = id||''; modalTitle.textContent = id ? 'Edit Job' : 'Add Job'; if (id){ const { data, error } = await db.from('jobs').select('*').eq('id', id).single(); if (error){ toast('Failed to load job', false); return; } for (const k of ['title','company','location','type','salary_min','salary_max','status','description']){ const el = document.getElementById(k); if (el) el.value = data[k] ?? ''; } } show(jobModal,true); }
     jobForm.addEventListener('submit', async (e)=>{ e.preventDefault(); const btn = document.getElementById('saveJob'); btn.disabled = true; const payload = { title: v('title'), company: v('company'), location: v('location'), type: v('type'), salary_min: n('salary_min'), salary_max: n('salary_max'), status: v('status'), description: v('description') }; const id = v('job_id'); let res; if (id){ res = await db.from('jobs').update(payload).eq('id', id).select('id').single(); } else { res = await db.from('jobs').insert(payload).select('id').single(); } btn.disabled = false; if (res.error){ console.error(res.error); toast('Save failed', false); return; } show(jobModal,false); toast(id ? 'Job updated' : 'Job added'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); });
     async function deleteJob(id){ if (!confirm('Delete this job?')) return; const { error } = await db.from('jobs').delete().eq('id', id); if (error){ toast('Delete failed', false); return; } toast('Job deleted'); await Promise.all([loadJobs(page), loadKPIsAndCharts()]); }
+    // quick status inline actions
+    document.getElementById('jobsTbody').addEventListener('click', async (e)=>{
+      const b = e.target.closest('button[data-job-status]'); if(!b) return; const { id } = b.dataset; const status = b.dataset.jobStatus; const { error } = await db.from('jobs').update({ status }).eq('id', id); if(error){ toast('Failed to update job', false); return;} toast(`Job → ${status}`); await Promise.all([loadJobs(page), loadKPIsAndCharts()]);
+    });
 
     // ---- EMPLOYERS CRUD ----
     const EMP_PAGE = 10; let empPage=1, empTotal=0;
@@ -495,6 +506,10 @@
           <td>
             <button class="btn alt" data-app-edit="${a.id}">Edit</button>
             <button class="btn warn" data-app-del="${a.id}">Delete</button>
+            <button class="btn alt" data-app-status="reviewed" data-id="${a.id}">Review</button>
+            <button class="btn alt" data-app-status="shortlisted" data-id="${a.id}">Shortlist</button>
+            <button class="btn alt" data-app-status="rejected" data-id="${a.id}">Reject</button>
+            <button class="btn alt" data-app-status="hired" data-id="${a.id}">Hire</button>
           </td>
         </tr>`).join(''); }
       document.getElementById('appsCount').textContent = `${appsTotal} application${appsTotal===1?'':'s'}`; document.getElementById('appsPageInfo').textContent = `${appsPage} / ${pages}`; tbody.querySelectorAll('button[data-app-edit]').forEach(b=> b.onclick = ()=> openAppModal(b.dataset.appEdit)); tbody.querySelectorAll('button[data-app-del]').forEach(b=> b.onclick = ()=> deleteApplication(b.dataset.appDel)); }
