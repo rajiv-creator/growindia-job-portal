@@ -1,20 +1,21 @@
-// config.js (GrowIndia) — replace the two strings below with YOUR real values.
-// IMPORTANT: Keep the values in quotes (single or double).
+<!-- config.js -->
+<!-- Requires the Supabase v2 CDN to be loaded before this file:
+     <script src="https://unpkg.com/@supabase/supabase-js@2"></script> -->
 
-const SUPABASE_URL = "https://aaoikjrrhjqccvdrdyjy.supabase.co";       // ← replace
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhb2lranJyaGpxY2N2ZHJkeWp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2ODkwODIsImV4cCI6MjA2ODI2NTA4Mn0.oEbTJSk-NMiYcJW7cvWOZkN9QUoLxgSpLnzm4tI4dnk";                          // ← replace
+<script>
+  // ⬇️ put YOUR real values here
+  const SUPABASE_URL      = "https://YOUR-PROJECT-REF.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
 
-// Create (or reuse) the global Supabase client.
-// Requires: <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-window.supabase = window.supabase ?? supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  {
+  // IMPORTANT: do NOT guard this behind `if (!window.supabase)`
+  // We intentionally assign the CLIENT to window.supabase
+  // (overriding the library namespace object provided by the CDN).
+  window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storageKey: "growindia-auth"
     }
-  }
-);
+  });
+</script>
