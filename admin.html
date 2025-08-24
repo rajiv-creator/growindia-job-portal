@@ -1,213 +1,115 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GrowIndia — Admin (v14.0 no-charts)</title>
-  <!-- GI_VERSION:14.0-NC -->
-  <link rel="preconnect" href="https://unpkg.com">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=14"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrowIndia — Admin</title>
+
+  <!-- REQUIRED: load SDK first, then your config -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/config.js?v=140"></script>
+
   <style>
-    :root{--bg:#0b1324;--card:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--brand:#2563eb;}
-    *{box-sizing:border-box} body{margin:0;background:#0b1324;color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    a{color:var(--text);text-decoration:none}
-    .wrap{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-    .side{background:#0f172a;padding:18px 14px;border-right:1px solid #1e293b}
-    h1{margin:0 0 8px 0;font-size:18px}
-    #nav a{display:flex;gap:10px;padding:10px 12px;margin:4px 0;border-radius:10px;color:var(--muted)}
-    #nav a.active,#nav a:hover{background:#0b1b39;color:#fff}
-    main{padding:22px}
-    .grid{display:grid;gap:14px;grid-template-columns:repeat(4,minmax(180px,1fr))}
-    .card{background:#0f172a;border:1px solid #1f2937;border-radius:14px;padding:16px}
-    .muted{color:#94a3b8}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-top:1px solid #1e293b}
-    th{color:#9aa5b1;text-align:left;font-weight:600}
-    .toolbar{display:flex;gap:10px;align-items:center;margin:0 0 12px}
-    input[type="text"],input[type="search"]{background:#0b1b39;border:1px solid #1e293b;color:#fff;border-radius:10px;padding:10px 12px;width:280px}
-    .btn{background:#16294b;border:1px solid #1e3a8a;padding:9px 12px;color:#fff;border-radius:10px;cursor:pointer}
-    .btn.warn{background:#3b1d1d;border-color:#7f1d1d}
+    :root { --brand:#2563eb; --text:#0f172a; --muted:#64748b; --bg:#f8fafc; }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;
+         color:var(--text); background:var(--bg); margin:0}
+    .nav{display:flex; align-items:center; gap:16px; padding:16px 20px; background:#fff;
+         box-shadow:0 1px 0 rgba(15,23,42,.08)}
+    .brand{font-weight:700}
+    .spacer{flex:1}
+    .btn{appearance:none;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:600}
+    .btn.primary{background:var(--brand);color:#fff}
+    .btn.ghost{background:#fff;border:1px solid #e2e8f0}
+    .wrap{max-width:1100px;margin:28px auto;padding:0 20px}
+    .muted{color:var(--muted)}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin:12px 0}
+    input{font:inherit;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+    .row{display:flex; gap:10px; align-items:center}
+    table{border-collapse:collapse;width:100%}
+    th,td{border-bottom:1px solid #e2e8f0;padding:10px 6px;text-align:left;font-size:14px}
   </style>
 </head>
 <body>
-<div class="wrap">
-  <aside class="side">
-    <h1>GrowIndia Admin</h1>
-    <nav id="nav">
-      <a href="#dashboard" data-target="dashboardSection">🏠 <span>Dashboard</span></a>
-      <a href="#jobs" data-target="jobsSection">🧰 <span>Jobs</span></a>
-      <a href="#employers" data-target="employersSection">🏢 <span>Employers</span></a>
-      <a href="#applications" data-target="applicationsSection">📄 <span>Applications</span></a>
-      <a href="#logout" id="logoutBtn">🚪 <span>Logout</span></a>
-    </nav>
-  </aside>
+  <nav class="nav">
+    <div class="brand">Admin</div>
+    <a class="btn ghost" href="index.html">Back to site</a>
+    <div class="spacer"></div>
+    <span id="who" class="muted">—</span>
+    <button id="logoutBtn" class="btn ghost">Logout</button>
+  </nav>
 
-  <main>
-    <section id="dashboardSection">
-      <div class="grid">
-        <div class="card"><div class="muted">Total Jobs</div><div id="kpiJobs" style="font-size:28px;font-weight:700">0</div></div>
-        <div class="card"><div class="muted">Active Jobs</div><div id="kpiActive" style="font-size:28px;font-weight:700">0</div></div>
-        <div class="card"><div class="muted">Employers</div><div id="kpiCompanies" style="font-size:28px;font-weight:700">0</div></div>
-        <div class="card"><div class="muted">Applications</div><div id="kpiApps" style="font-size:28px;font-weight:700">0</div></div>
+  <div class="wrap">
+    <h2>Companies</h2>
+
+    <div class="card">
+      <div class="row" style="flex-wrap:wrap">
+        <input id="cName" placeholder="Company name" style="flex:1; min-width:240px" />
+        <input id="cWeb"  placeholder="Website (https://…)" style="flex:1; min-width:260px" />
+        <button id="createCompanyBtn" class="btn primary">Create company</button>
       </div>
-      <p class="muted" style="margin-top:12px">Charts are temporarily disabled in this build (no-charts).</p>
-    </section>
+      <p class="muted" style="margin:10px 0 0">Owner will be the logged-in user.</p>
+    </div>
 
-    <section id="jobsSection" style="display:none">
-      <div class="toolbar">
-        <input id="searchJobs" type="search" placeholder="Search title/company">
-        <button class="btn" id="refreshJobs">Refresh</button>
-      </div>
-      <div class="card">
-        <table>
-          <thead><tr><th>Title</th><th>Company</th><th>Status</th><th>Created</th></tr></thead>
-          <tbody id="jobsTbody"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Website</th><th>Owner</th><th>Created</th></tr></thead>
+        <tbody id="companiesTbody"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
-    <section id="employersSection" style="display:none">
-      <div class="toolbar">
-        <input id="searchCompanies" type="search" placeholder="Search name/email">
-        <button class="btn" id="refreshCompanies">Refresh</button>
-      </div>
-      <div class="card">
-        <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Website</th><th>Created</th></tr></thead>
-          <tbody id="companiesTbody"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="applicationsSection" style="display:none">
-      <div class="toolbar">
-        <input id="searchApps" type="search" placeholder="Search candidate/email">
-        <button class="btn" id="refreshApps">Refresh</button>
-      </div>
-      <div class="card">
-        <table>
-          <thead><tr><th>Candidate</th><th>Email</th><th>Job</th><th>Status</th><th>Applied</th></tr></thead>
-          <tbody id="appsTbody"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-</div>
-
-<script>
-// ------- Router bootstrap (independent; always works) -------
-const __sections_map__ = { dashboard:'dashboardSection', jobs:'jobsSection', employers:'employersSection', applications:'applicationsSection' };
-function route(){
-  const key=(location.hash||'#dashboard').replace('#','');
-  const id=__sections_map__[key]||'dashboardSection';
-  Object.values(__sections_map__).forEach(s=>{ const el=document.getElementById(s); if(el) el.style.display=(s===id)?'block':'none'; });
-  document.querySelectorAll('#nav a').forEach(a=> a.classList.toggle('active',a.dataset.target===id));
-  if(key==='logout'){ const btn=document.getElementById('logoutBtn'); if(btn) btn.click(); }
-}
-window.addEventListener('hashchange', route);
-document.addEventListener('DOMContentLoaded', route);
-
-// ------- App code (guarded) -------
-(function(){
-  const escapeHTML = (s) => {
-    if (s == null) return '';
-    return String(s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
-  };
-
-  const $ = (id) => document.getElementById(id);
-
-  async function getSession(){
-    try{
-      const { data:{ session } } = await supabase.auth.getSession();
+  <script>
+    // Redirect to post-auth if not signed in
+    async function guard(){
+      const { data: { session } } = await sbAuth.getSession();
+      if(!session){ location.replace('/post-auth.html'); return null; }
       return session;
-    }catch(e){ console.error(e); return null; }
-  }
+    }
 
-  $('logoutBtn').addEventListener('click', async () => {
-    try{ await supabase.auth.signOut(); location.href = '/'; }catch(e){ alert('Logout failed'); }
-  });
+    async function loadCompanies(){
+      const { data, error } = await sb.from('companies')
+        .select('id,name,website,owner_id,created_at')
+        .order('created_at', { ascending:false })
+        .limit(50);
+      const tb = document.getElementById('companiesTbody');
+      if(error){ console.error(error); tb.innerHTML = `<tr><td colspan="4" class="muted">Failed to load.</td></tr>`; return; }
+      if(!data?.length){ tb.innerHTML = `<tr><td colspan="4" class="muted">No rows.</td></tr>`; return; }
+      tb.innerHTML = data.map(r => `
+        <tr>
+          <td>${r.name || ''}</td>
+          <td><a href="${r.website || '#'}" target="_blank" rel="noreferrer">${r.website || ''}</a></td>
+          <td><code style="font-size:12px">${r.owner_id || ''}</code></td>
+          <td>${(r.created_at || '').slice(0,10)}</td>
+        </tr>
+      `).join('');
+    }
 
-  // --- data loaders ---
-  async function loadKPIs(){
-    try{
-      const [{ count:jobs }, { count:active }, { count:companies }, { count:apps }] = await Promise.all([
-        supabase.from('jobs').select('*', { count:'exact', head:true }),
-        supabase.from('jobs').select('*', { count:'exact', head:true }).eq('status','active'),
-        supabase.from('companies').select('*', { count:'exact', head:true }),
-        supabase.from('applications').select('*', { count:'exact', head:true })
-      ]);
-      $('kpiJobs').textContent = jobs ?? 0;
-      $('kpiActive').textContent = active ?? 0;
-      $('kpiCompanies').textContent = companies ?? 0;
-      $('kpiApps').textContent = apps ?? 0;
-    }catch(e){ console.error(e); }
-  }
+    async function createCompany(){
+      const name = document.getElementById('cName').value.trim();
+      const website = document.getElementById('cWeb').value.trim();
+      if(!name){ alert('Enter company name'); return; }
+      const { data: { session } } = await sbAuth.getSession();
+      if(!session){ alert('You are signed out.'); return; }
+      const owner_id = session.user.id; // <- IMPORTANT: non-null
 
-  async function loadJobs(){
-    const q = ($('searchJobs').value||'').trim();
-    $('jobsTbody').innerHTML = '<tr><td colspan="4" class="muted">Loading…</td></tr>';
-    let rq = supabase.from('jobs').select('id,title,status,created_at,companies(name)').order('created_at',{ascending:false}).limit(50);
-    if(q){ rq = rq.ilike('title', `%${q}%`); }
-    const { data, error } = await rq;
-    if(error){ console.error(error); $('jobsTbody').innerHTML='<tr><td colspan="4" class="muted">Failed</td></tr>'; return; }
-    $('jobsTbody').innerHTML = (data||[]).map(j=>`<tr>
-      <td>${escapeHTML(j.title)}</td>
-      <td>${escapeHTML(j.companies?.name||'')}</td>
-      <td>${escapeHTML(j.status)}</td>
-      <td>${escapeHTML((j.created_at||'').slice(0,10))}</td>
-    </tr>`).join('') || '<tr><td colspan="4" class="muted">No rows</td></tr>';
-  }
+      const { error } = await sb.from('companies').insert([{ name, website, owner_id }]);
+      if(error){ alert(error.message); return; }
+      document.getElementById('cName').value = '';
+      document.getElementById('cWeb').value = '';
+      await loadCompanies();
+    }
 
-  async function loadCompanies(){
-    const q = ($('searchCompanies').value||'').trim();
-    $('companiesTbody').innerHTML = '<tr><td colspan="4" class="muted">Loading…</td></tr>';
-    let rq = supabase.from('companies').select('id,name,website,owner_email,created_at').order('created_at',{ascending:false}).limit(50);
-    if(q){ rq = rq.or(`name.ilike.%${q}%,owner_email.ilike.%${q}%`); }
-    const { data, error } = await rq;
-    if(error){ console.error(error); $('companiesTbody').innerHTML='<tr><td colspan="4" class="muted">Failed</td></tr>'; return; }
-    $('companiesTbody').innerHTML = (data||[]).map(c=>`<tr>
-      <td>${escapeHTML(c.name)}</td>
-      <td>${escapeHTML(c.owner_email||'')}</td>
-      <td><a href="${escapeHTML(c.website||'#')}" target="_blank">${escapeHTML(c.website||'')}</a></td>
-      <td>${escapeHTML((c.created_at||'').slice(0,10))}</td>
-    </tr>`).join('') || '<tr><td colspan="4" class="muted">No rows</td></tr>';
-  }
+    document.getElementById('logoutBtn').onclick = async () => {
+      await sbAuth.signOut(); location.assign('/post-auth.html');
+    };
+    document.getElementById('createCompanyBtn').onclick = createCompany;
 
-  async function loadApps(){
-    const q = ($('searchApps').value||'').trim();
-    $('appsTbody').innerHTML = '<tr><td colspan="5" class="muted">Loading…</td></tr>';
-    let rq = supabase.from('applications').select('id,candidate_name,candidate_email,status,created_at,jobs(title)').order('created_at',{ascending:false}).limit(50);
-    if(q){ rq = rq.or(`candidate_name.ilike.%${q}%,candidate_email.ilike.%${q}%`); }
-    const { data, error } = await rq;
-    if(error){ console.error(error); $('appsTbody').innerHTML='<tr><td colspan="5" class="muted">Failed</td></tr>'; return; }
-    $('appsTbody').innerHTML = (data||[]).map(a=>`<tr>
-      <td>${escapeHTML(a.candidate_name||'')}</td>
-      <td>${escapeHTML(a.candidate_email||'')}</td>
-      <td>${escapeHTML(a.jobs?.title||'')}</td>
-      <td>${escapeHTML(a.status||'')}</td>
-      <td>${escapeHTML((a.created_at||'').slice(0,10))}</td>
-    </tr>`).join('') || '<tr><td colspan="5" class="muted">No rows</td></tr>';
-  }
-
-  // Wire refresh buttons
-  $('refreshJobs').addEventListener('click', loadJobs);
-  $('refreshCompanies').addEventListener('click', loadCompanies);
-  $('refreshApps').addEventListener('click', loadApps);
-  $('searchJobs').addEventListener('keydown', e=> (e.key==='Enter') && loadJobs());
-  $('searchCompanies').addEventListener('keydown', e=> (e.key==='Enter') && loadCompanies());
-  $('searchApps').addEventListener('keydown', e=> (e.key==='Enter') && loadApps());
-
-  // Boot
-  (async () => {
-    const s = await getSession();
-    if(!s){ location.href = '/post-auth.html'; return; }
-    await loadKPIs();
-    await Promise.all([loadJobs(), loadCompanies(), loadApps()]);
-  })();
-})();
-</script>
+    (async () => {
+      const session = await guard();
+      if(!session) return;
+      document.getElementById('who').textContent = `Signed in as ${session.user.email || session.user.id}`;
+      await loadCompanies();
+    })();
+  </script>
 </body>
 </html>
