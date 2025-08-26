@@ -1,57 +1,38 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrowIndia — Account</title>
-
-  <!-- REQUIRED: load SDK first, then your config -->
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Signed in</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/config.js?v=140"></script>
-
+  <script src="/config.js?v=143"></script>
   <style>
-    :root { --brand:#2563eb; --text:#0f172a; --muted:#64748b; --bg:#f8fafc; }
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;
-         color:var(--text); background:var(--bg); margin:0}
-    .wrap{max-width:900px;margin:40px auto;padding:0 20px}
-    .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px}
-    .row{display:flex; gap:10px; align-items:center}
-    .btn{appearance:none;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:600}
-    .btn.primary{background:var(--brand);color:#fff}
-    .btn.ghost{background:#fff;border:1px solid #e2e8f0}
-    .muted{color:var(--muted)}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;padding:32px;line-height:1.5}
+    .btn{display:inline-block;margin-right:8px;height:40px;padding:0 14px;border-radius:10px;border:0;background:#0ea5e9;color:#fff;text-decoration:none;line-height:40px}
+    .ghost{background:#e5e7eb;color:#111}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Account</h1>
-      <p id="who" class="muted">Checking session…</p>
-      <div class="row" style="gap:12px; margin-top:10px">
-        <button id="goAdmin" class="btn primary">Go to Admin</button>
-        <button id="logoutBtn" class="btn ghost">Logout</button>
-        <a class="btn ghost" href="index.html">Back to site</a>
-      </div>
-    </div>
-  </div>
+  <h1>You’re signed in</h1>
+  <p id="who"></p>
+  <p>
+    <a class="btn" href="/admin.html">Go to Admin</a>
+    <a class="btn ghost" href="/jobs.html">Browse Jobs</a>
+    <a class="btn ghost" href="/index.html" id="logout">Logout</a>
+  </p>
 
   <script>
-    async function showStatus(){
-      const { data: { session } } = await sbAuth.getSession();
-      document.getElementById('who').textContent =
-        session && session.user
-          ? `Signed in as ${session.user.email || session.user.id}`
-          : 'You are not signed in.';
-    }
-
-    document.getElementById('goAdmin').onclick = () => location.assign('/admin.html');
-    document.getElementById('logoutBtn').onclick = async () => {
-      await sbAuth.signOut();
-      location.assign('/index.html');
-    };
-
-    sbAuth.onAuthStateChange(showStatus);
-    showStatus();
+    (async () => {
+      const { data } = await window.sbAuth.getSession();
+      const user = data?.session?.user;
+      document.getElementById("who").textContent =
+        user ? ("Signed in as " + user.email) : "No active session.";
+      document.getElementById("logout").addEventListener("click", async (e) => {
+        e.preventDefault();
+        await window.sbAuth.signOut();
+        location.href = "/index.html";
+      });
+    })();
   </script>
 </body>
 </html>
