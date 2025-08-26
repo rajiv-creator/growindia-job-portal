@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>GrowIndia Jobs — Login</title>
 
-  <!-- keep this exact order -->
+  <!-- Keep this exact order -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/config.js?v=141"></script>
+  <script src="/config.js?v=143"></script>
 
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;padding:32px;line-height:1.5}
@@ -45,15 +45,12 @@
   </div>
 
   <script>
-    // REQUIREMENTS:
-    // - window.supabase client and window.sbAuth are created in /config.js
-    // - Supabase Auth settings allow the redirect URL (see dashboard)
     (function () {
       const form = document.getElementById("loginForm");
       const btn  = document.getElementById("loginBtn");
       const msg  = document.getElementById("msg");
 
-      // Change this ONLY if your deployed domain is different
+      // Change only if your deployed domain differs
       const PROD_REDIRECT = "https://growindia-job-portal.vercel.app/post-auth.html";
       const redirectTo = location.hostname.endsWith("vercel.app")
         ? PROD_REDIRECT
@@ -83,23 +80,18 @@
             email,
             options: { emailRedirectTo: redirectTo }
           });
-
           if (error) throw error;
-
           msg.textContent = "Check your email for the sign-in link.";
         } catch (err) {
           console.error("signInWithOtp error:", err);
-
           const text = String(err && err.message ? err.message : err);
 
           if (text.includes("Failed to fetch")) {
-            // Most common: CORS / URL / key mismatch
             msg.classList.add("err");
-            msg.innerHTML = "Could not reach Supabase (likely CORS / URL config). \
-Ensure in Supabase → Auth → URL Configuration:\
-<br>• Site URL: <code>https://growindia-job-portal.vercel.app</code>\
-<br>• Redirects: <code>https://growindia-job-portal.vercel.app/post-auth.html</code> (and localhost if needed)\
-<br>• Allowed Origins (CORS): your Vercel domain (and localhost)";
+            msg.innerHTML = "Could not reach Supabase (likely URL / Redirects).<br>\
+Go to Supabase → Authentication → URL Configuration and set:<br>\
+• Site URL: <code>https://growindia-job-portal.vercel.app</code><br>\
+• Additional redirects: <code>https://growindia-job-portal.vercel.app/post-auth.html</code> (plus localhost if needed)";
           } else {
             msg.classList.add("err");
             msg.textContent = "Error: " + text;
