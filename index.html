@@ -1,123 +1,113 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrowIndia Jobs — Home</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GrowIndia Jobs — Login</title>
 
-  <!-- REQUIRED: load SDK first, then your config -->
+  <!-- keep this exact order -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/config.js?v=140"></script>
+  <script src="/config.js?v=141"></script>
 
   <style>
-    :root { --brand:#2563eb; --text:#0f172a; --muted:#64748b; --bg:#f8fafc; }
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;
-         color:var(--text); background:var(--bg); margin:0}
-    .nav{display:flex; align-items:center; gap:16px; padding:16px 20px; background:#fff;
-         box-shadow:0 1px 0 rgba(15,23,42,.08)}
-    .brand{font-weight:700}
-    .grow{font-weight:700; color:var(--brand)}
-    .spacer{flex:1}
-    .btn{appearance:none;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:600}
-    .btn.primary{background:var(--brand);color:#fff}
-    .btn.ghost{background:#fff;border:1px solid #e2e8f0}
-    .wrap{max-width:1100px;margin:28px auto;padding:0 20px}
-    .muted{color:var(--muted);font-size:14px}
-    .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin:12px 0}
-    .row{display:flex; gap:12px; align-items:center; justify-content:space-between}
-    .badge{display:inline-block;font-size:12px;padding:4px 8px;background:#eef2ff;border-radius:999px;color:#3730a3}
-    .filters{display:grid;grid-template-columns:1fr 200px 200px; gap:12px;margin:18px 0}
-    input,select{font:inherit;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
-    a{text-decoration:none;color:var(--brand)}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;padding:32px;line-height:1.5}
+    .wrap{max-width:480px;margin:0 auto}
+    .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+    label{display:block;margin:8px 0 6px 0;font-weight:600}
+    input{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;outline:none}
+    button{margin-top:12px;height:40px;padding:0 14px;border-radius:10px;border:0;background:#0ea5e9;color:#fff;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .muted{color:#6b7280;font-size:14px}
+    .err{color:#b91c1c}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    a{color:#0ea5e9;text-decoration:none}
+    a:hover{text-decoration:underline}
   </style>
 </head>
 <body>
-  <nav class="nav">
-    <div class="brand"><span class="grow">GrowIndia</span> Jobs</div>
-    <a class="btn ghost" href="admin.html">Dashboard</a>
-    <div class="spacer"></div>
-    <button id="loginBtn" class="btn primary">Login / Sign up</button>
-    <button id="logoutBtn" class="btn ghost" style="display:none">Logout</button>
-  </nav>
-
   <div class="wrap">
-    <h1>Open Positions</h1>
-    <div class="filters">
-      <input id="q" placeholder="Title or company" />
-      <select id="emp">
-        <option value="">Any</option>
-        <option>Full-time</option><option>Part-time</option><option>Contract</option>
-      </select>
-      <select id="rem">
-        <option value="">Any</option>
-        <option value="true">Remote</option>
-        <option value="false">Onsite</option>
-      </select>
+    <div class="row" style="justify-content:flex-end;margin-bottom:8px">
+      <a class="muted" href="/jobs.html">Browse Jobs</a>
     </div>
 
-    <div id="jobs"></div>
-    <p class="muted" id="empty" style="display:none">No jobs found.</p>
+    <h1 style="margin:0 0 6px 0">Welcome back</h1>
+    <p class="muted" style="margin:0 0 16px 0">Sign in to post jobs and manage your company.</p>
+
+    <div class="card">
+      <form id="loginForm" novalidate>
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" required />
+
+        <button id="loginBtn" type="submit">Send magic link</button>
+        <p id="msg" class="muted" style="margin:10px 0 0 0"></p>
+      </form>
+    </div>
   </div>
 
   <script>
-    // ---------- Auth helpers (uses sb/sbAuth from config.js) ----------
-    async function refreshAuthButtons(){
-      const { data: { session } } = await sbAuth.getSession();
-      document.getElementById('loginBtn').style.display  = session ? 'none' : '';
-      document.getElementById('logoutBtn').style.display = session ? '' : 'none';
-    }
-    document.getElementById('loginBtn').onclick = async () => {
-      const email = prompt('Enter email for a magic link to sign in:');
-      if(!email) return;
-      try{
-        const { error } = await sbAuth.signInWithOtp({ email, options:{ emailRedirectTo: location.origin + '/post-auth.html' }});
-        if(error) throw error;
-        alert('Check your email for the sign-in link.');
-      }catch(e){ alert(e.message); }
-    };
-    document.getElementById('logoutBtn').onclick = async () => {
-      await sbAuth.signOut(); await refreshAuthButtons();
-    };
-    sbAuth.onAuthStateChange(refreshAuthButtons);
+    // REQUIREMENTS:
+    // - window.supabase client and window.sbAuth are created in /config.js
+    // - Supabase Auth settings allow the redirect URL (see dashboard)
+    (function () {
+      const form = document.getElementById("loginForm");
+      const btn  = document.getElementById("loginBtn");
+      const msg  = document.getElementById("msg");
 
-    // ---------- Jobs listing (simple demo query) ----------
-    const qEl   = document.getElementById('q');
-    const empEl = document.getElementById('emp');
-    const remEl = document.getElementById('rem');
-    const jobsEl = document.getElementById('jobs');
-    const emptyEl = document.getElementById('empty');
+      // Change this ONLY if your deployed domain is different
+      const PROD_REDIRECT = "https://growindia-job-portal.vercel.app/post-auth.html";
+      const redirectTo = location.hostname.endsWith("vercel.app")
+        ? PROD_REDIRECT
+        : (location.origin + "/post-auth.html");
 
-    async function loadJobs(){
-      let query = sb.from('jobs').select('*').order('created_at', { ascending: false }).limit(50);
-      if(qEl.value.trim()){
-        const v = `%${qEl.value.trim()}%`;
-        query = query.ilike('title', v);
+      if (!window.sbAuth) {
+        msg.classList.add("err");
+        msg.textContent = "Auth not initialised. Check config.js exports window.supabase and window.sbAuth.";
+        return;
       }
-      if(empEl.value) query = query.eq('employment', empEl.value);
-      if(remEl.value) query = query.eq('remote', remEl.value === 'true');
-      const { data, error } = await query;
-      if(error){ console.error(error); jobsEl.innerHTML=''; emptyEl.style.display=''; return; }
-      const rows = data || [];
-      jobsEl.innerHTML = rows.map(r => `
-        <div class="card">
-          <div class="row">
-            <div>
-              <h3 style="margin:0">${r.title || ''}</h3>
-              <div class="badge">${r.company_name || 'Company'}</div>
-              <p class="muted" style="margin:6px 0 0">
-                ${(r.location || 'Location flexible')} • ${(r.employment || 'Any')}
-              </p>
-            </div>
-            <a href="admin.html" class="btn ghost">Apply</a>
-          </div>
-        </div>
-      `).join('');
-      emptyEl.style.display = rows.length ? 'none' : '';
-    }
 
-    // filters + boot
-    [qEl,empEl,remEl].forEach(el => el.addEventListener('input', loadJobs));
-    refreshAuthButtons().then(loadJobs);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = (document.getElementById("email").value || "").trim();
+        if (!email) {
+          msg.classList.add("err");
+          msg.textContent = "Please enter a valid email.";
+          return;
+        }
+
+        btn.disabled = true;
+        msg.classList.remove("err");
+        msg.textContent = "Sending magic link…";
+
+        try {
+          const { error } = await window.sbAuth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: redirectTo }
+          });
+
+          if (error) throw error;
+
+          msg.textContent = "Check your email for the sign-in link.";
+        } catch (err) {
+          console.error("signInWithOtp error:", err);
+
+          const text = String(err && err.message ? err.message : err);
+
+          if (text.includes("Failed to fetch")) {
+            // Most common: CORS / URL / key mismatch
+            msg.classList.add("err");
+            msg.innerHTML = "Could not reach Supabase (likely CORS / URL config). \
+Ensure in Supabase → Auth → URL Configuration:\
+<br>• Site URL: <code>https://growindia-job-portal.vercel.app</code>\
+<br>• Redirects: <code>https://growindia-job-portal.vercel.app/post-auth.html</code> (and localhost if needed)\
+<br>• Allowed Origins (CORS): your Vercel domain (and localhost)";
+          } else {
+            msg.classList.add("err");
+            msg.textContent = "Error: " + text;
+          }
+          btn.disabled = false;
+        }
+      });
+    })();
   </script>
 </body>
 </html>
