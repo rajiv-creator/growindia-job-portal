@@ -1,115 +1,150 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrowIndia — Admin</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin — GrowIndia Jobs</title>
 
-  <!-- REQUIRED: load SDK first, then your config -->
+  <!-- Keep this order -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/config.js?v=140"></script>
+  <script src="/config.js?v=145"></script>
 
   <style>
-    :root { --brand:#2563eb; --text:#0f172a; --muted:#64748b; --bg:#f8fafc; }
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;
-         color:var(--text); background:var(--bg); margin:0}
-    .nav{display:flex; align-items:center; gap:16px; padding:16px 20px; background:#fff;
-         box-shadow:0 1px 0 rgba(15,23,42,.08)}
-    .brand{font-weight:700}
-    .spacer{flex:1}
-    .btn{appearance:none;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:600}
-    .btn.primary{background:var(--brand);color:#fff}
-    .btn.ghost{background:#fff;border:1px solid #e2e8f0}
-    .wrap{max-width:1100px;margin:28px auto;padding:0 20px}
+    :root{--border:#e5e7eb;--muted:#6b7280;--blue:#2563eb}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:#fafafa;color:#111}
+    .wrap{max-width:1000px;margin:0 auto;padding:24px}
+    a{color:#2563eb;text-decoration:none} a:hover{text-decoration:underline}
+    .top{display:flex;align-items:center;gap:12px}
+    .top .spacer{flex:1}
+    .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    input{height:42px;padding:0 12px;border:1px solid var(--border);border-radius:12px;outline:none;min-width:260px}
+    button{height:42px;padding:0 16px;border-radius:12px;border:0;background:#2563eb;color:#fff;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{border-bottom:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    th{font-size:12px;text-transform:uppercase;color:var(--muted);letter-spacing:.06em}
     .muted{color:var(--muted)}
-    .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin:12px 0}
-    input{font:inherit;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
-    .row{display:flex; gap:10px; align-items:center}
-    table{border-collapse:collapse;width:100%}
-    th,td{border-bottom:1px solid #e2e8f0;padding:10px 6px;text-align:left;font-size:14px}
+    .alert{margin-top:12px;padding:12px;border:1px solid #f59e0b;background:#fef3c7;border-radius:12px;color:#92400e}
   </style>
 </head>
 <body>
-  <nav class="nav">
-    <div class="brand">Admin</div>
-    <a class="btn ghost" href="index.html">Back to site</a>
-    <div class="spacer"></div>
-    <span id="who" class="muted">—</span>
-    <button id="logoutBtn" class="btn ghost">Logout</button>
-  </nav>
-
   <div class="wrap">
-    <h2>Companies</h2>
-
-    <div class="card">
-      <div class="row" style="flex-wrap:wrap">
-        <input id="cName" placeholder="Company name" style="flex:1; min-width:240px" />
-        <input id="cWeb"  placeholder="Website (https://…)" style="flex:1; min-width:260px" />
-        <button id="createCompanyBtn" class="btn primary">Create company</button>
-      </div>
-      <p class="muted" style="margin:10px 0 0">Owner will be the logged-in user.</p>
+    <div class="top">
+      <strong>Admin</strong>
+      <span class="spacer"></span>
+      <a href="/jobs.html">Back to site</a>
     </div>
 
+    <div class="row" style="justify-content:flex-end;margin:8px 0 16px 0">
+      <span id="who" class="muted">Checking session…</span>
+      <button id="logoutBtn" style="background:#e5e7eb;color:#111">Logout</button>
+    </div>
+
+    <h1 style="margin:0 0 8px 0">Companies</h1>
+    <p class="muted" style="margin:0 0 12px 0">Owner will be the logged-in user.</p>
+
     <div class="card">
+      <div class="row">
+        <input id="cName" placeholder="Company name"/>
+        <input id="cWebsite" placeholder="Website (https://…)"/>
+        <button id="createBtn">Create company</button>
+      </div>
+      <div id="note" class="alert" style="display:none"></div>
+
       <table>
-        <thead><tr><th>Name</th><th>Website</th><th>Owner</th><th>Created</th></tr></thead>
-        <tbody id="companiesTbody"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+        <thead>
+          <tr><th>Name</th><th>Website</th><th>Owner</th><th>Created</th></tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="4" class="muted">Loading…</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 
   <script>
-    // Redirect to post-auth if not signed in
-    async function guard(){
-      const { data: { session } } = await sbAuth.getSession();
-      if(!session){ location.replace('/post-auth.html'); return null; }
-      return session;
+  const sb = window.supabase;
+
+  (async function init(){
+    // Guard: must be logged in
+    const { data } = await sb.auth.getSession();
+    const session = data?.session;
+    if(!session){ location.href="/index.html"; return; }
+
+    // Header bits
+    document.getElementById("who").textContent = "Signed in as " + session.user.email;
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await sb.auth.signOut(); location.href="/index.html";
+    });
+
+    // Wire create handler
+    document.getElementById("createBtn").addEventListener("click", () => createCompany(session));
+
+    // Load table
+    loadCompanies();
+  })();
+
+  async function loadCompanies(){
+    const rows = document.getElementById("rows");
+    rows.innerHTML = `<tr><td colspan="4" class="muted">Loading…</td></tr>`;
+    const { data, error } = await sb.from("companies")
+      .select("id,name,website,owner_id,created_at")
+      .order("created_at", { ascending:false });
+
+    if(error){
+      rows.innerHTML = `<tr><td colspan="4"><div class="alert"><strong>Load error:</strong> ${escapeHtml(error.message)}</div></td></tr>`;
+      console.error("SELECT companies error", error);
+      return;
     }
 
-    async function loadCompanies(){
-      const { data, error } = await sb.from('companies')
-        .select('id,name,website,owner_id,created_at')
-        .order('created_at', { ascending:false })
-        .limit(50);
-      const tb = document.getElementById('companiesTbody');
-      if(error){ console.error(error); tb.innerHTML = `<tr><td colspan="4" class="muted">Failed to load.</td></tr>`; return; }
-      if(!data?.length){ tb.innerHTML = `<tr><td colspan="4" class="muted">No rows.</td></tr>`; return; }
-      tb.innerHTML = data.map(r => `
-        <tr>
-          <td>${r.name || ''}</td>
-          <td><a href="${r.website || '#'}" target="_blank" rel="noreferrer">${r.website || ''}</a></td>
-          <td><code style="font-size:12px">${r.owner_id || ''}</code></td>
-          <td>${(r.created_at || '').slice(0,10)}</td>
-        </tr>
-      `).join('');
+    if(!data || data.length === 0){
+      rows.innerHTML = `<tr><td colspan="4" class="muted">No companies yet.</td></tr>`;
+      return;
     }
 
-    async function createCompany(){
-      const name = document.getElementById('cName').value.trim();
-      const website = document.getElementById('cWeb').value.trim();
-      if(!name){ alert('Enter company name'); return; }
-      const { data: { session } } = await sbAuth.getSession();
-      if(!session){ alert('You are signed out.'); return; }
-      const owner_id = session.user.id; // <- IMPORTANT: non-null
+    rows.innerHTML = data.map(r => `
+      <tr>
+        <td>${escapeHtml(r.name || "")}</td>
+        <td>${r.website ? `<a href="${encodeURI(r.website)}" target="_blank">${escapeHtml(r.website)}</a>` : ""}</td>
+        <td class="muted"><code>${r.owner_id}</code></td>
+        <td class="muted">${new Date(r.created_at).toLocaleString()}</td>
+      </tr>
+    `).join("");
+  }
 
-      const { error } = await sb.from('companies').insert([{ name, website, owner_id }]);
-      if(error){ alert(error.message); return; }
-      document.getElementById('cName').value = '';
-      document.getElementById('cWeb').value = '';
-      await loadCompanies();
+  async function createCompany(session){
+    const name = document.getElementById("cName").value.trim();
+    let website = document.getElementById("cWebsite").value.trim();
+    const note = document.getElementById("note");
+    note.style.display = "none"; note.textContent = "";
+
+    if(!name){ note.textContent="Please enter a company name."; note.style.display="block"; return; }
+    if(website && !/^https?:\/\//i.test(website)) website = "https://" + website;
+
+    const btn = document.getElementById("createBtn");
+    btn.disabled = true;
+
+    const payload = { name, website: website || null, owner_id: session.user.id };
+    const { data, error } = await sb.from("companies").insert(payload).select().single();
+
+    btn.disabled = false;
+
+    if(error){
+      note.innerHTML = `<strong>Create error:</strong> ${escapeHtml(error.message)}`;
+      note.style.display = "block";
+      console.error("INSERT companies error", error);
+      return;
     }
 
-    document.getElementById('logoutBtn').onclick = async () => {
-      await sbAuth.signOut(); location.assign('/post-auth.html');
-    };
-    document.getElementById('createCompanyBtn').onclick = createCompany;
+    document.getElementById("cName").value="";
+    document.getElementById("cWebsite").value="";
+    loadCompanies();
+  }
 
-    (async () => {
-      const session = await guard();
-      if(!session) return;
-      document.getElementById('who').textContent = `Signed in as ${session.user.email || session.user.id}`;
-      await loadCompanies();
-    })();
+  function escapeHtml(s){
+    return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
   </script>
 </body>
 </html>
